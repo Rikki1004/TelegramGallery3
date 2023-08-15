@@ -1,7 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2023 IacobIacob01
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.rikkimikki.telegramgallery3.core
 
 import android.os.Parcelable

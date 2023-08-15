@@ -17,6 +17,12 @@ android {
     namespace = "com.rikkimikki.telegramgallery3"
     compileSdk = 34
 
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDir("src/main/jniLibs")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.rikkimikki.telegramgallery3"
         minSdk = 30

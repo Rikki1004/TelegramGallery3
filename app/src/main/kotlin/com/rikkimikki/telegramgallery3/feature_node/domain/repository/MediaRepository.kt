@@ -7,6 +7,7 @@ import com.rikkimikki.telegramgallery3.core.Resource
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Album
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.PinnedAlbum
+import com.rikkimikki.telegramgallery3.feature_node.domain.util.AuthState
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.MediaOrder
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import kotlinx.coroutines.flow.Flow
@@ -55,5 +56,12 @@ interface MediaRepository {
         result: ActivityResultLauncher<IntentSenderRequest>,
         mediaList: List<Media>
     )
+
+
+    fun checkAuthState() : Flow<AuthState>
+    fun startTelegram()
+    suspend fun authSendPhone(phone: String)
+    suspend fun authSendCode(code: String)
+    suspend fun authSendPassword(password: String)
 
 }

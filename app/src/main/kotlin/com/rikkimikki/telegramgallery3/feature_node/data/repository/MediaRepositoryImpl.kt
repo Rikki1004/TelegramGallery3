@@ -2,6 +2,7 @@ package com.rikkimikki.telegramgallery3.feature_node.data.repository
 
 import android.annotation.SuppressLint
 import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -20,25 +21,78 @@ import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaByUr
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaFavorite
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaListByUris
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaTrashed
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.TelegramCredentials
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramFlow
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.checkAuthenticationCode
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.checkAuthenticationPassword
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.checkDatabaseEncryptionKey
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.setAuthenticationPhoneNumber
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.setTdlibParameters
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.extensions.ChatKtx
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.extensions.UserKtx
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.flows.authorizationStateFlow
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Album
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.PinnedAlbum
 import com.rikkimikki.telegramgallery3.feature_node.domain.repository.MediaRepository
+import com.rikkimikki.telegramgallery3.feature_node.domain.util.AuthState
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.MediaOrder
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.OrderType
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import org.drinkless.td.libcore.telegram.TdApi
 
 class MediaRepositoryImpl(
     private val contentResolver: ContentResolver,
-    private val database: InternalDatabase
-) : MediaRepository {
+    private val database: InternalDatabase,
+    private val telegramCredentials : TelegramCredentials
+) : MediaRepository, UserKtx, ChatKtx {
 
-    /**
-     * TODO: Add media reordering
-     */
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    override val api: TelegramFlow = TelegramFlow()
+
+    private val authFlow = api.authorizationStateFlow()
+        .onEach {
+            println("ddd: "+it.toString())
+            checkRequiredParams(it)
+        }
+        .map {
+            when (it) {
+                is TdApi.AuthorizationStateReady -> AuthState.LoggedIn
+                is TdApi.AuthorizationStateWaitCode -> AuthState.EnterCode
+                is TdApi.AuthorizationStateWaitPassword -> AuthState.EnterPassword
+                is TdApi.AuthorizationStateWaitPhoneNumber -> AuthState.EnterPhone
+                else -> AuthState.Waiting
+            }
+        }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,// .Lazily,
+            initialValue = AuthState.Initial
+        )
+
+    private suspend fun checkRequiredParams(state: TdApi.AuthorizationState?) {
+        when (state) {
+            is TdApi.AuthorizationStateWaitTdlibParameters -> {
+                api.setTdlibParameters(telegramCredentials.parameters)
+            }
+            is TdApi.AuthorizationStateWaitEncryptionKey ->{
+                api.checkDatabaseEncryptionKey(ByteArray(0))
+            }
+            is TdApi.AuthorizationStateReady ->{
+                println("ready for use")
+            }
+        }
+    }
+
+
     override fun getMedia(): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia { it.getMedia(mediaOrder = DEFAULT_ORDER) }
 
@@ -237,6 +291,32 @@ class MediaRepositoryImpl(
             .build()
         result.launch(senderRequest)
     }
+
+
+
+
+
+    override fun startTelegram() {
+        api.attachClient()
+    }
+    override fun checkAuthState(): Flow<AuthState> {
+        return authFlow
+    }
+
+    override suspend fun authSendPhone(phone: String) {
+        api.setAuthenticationPhoneNumber(phone, null)
+    }
+
+    override suspend fun authSendCode(code: String) {
+        api.checkAuthenticationCode(code)
+    }
+
+    override suspend fun authSendPassword(password: String) {
+        api.checkAuthenticationPassword(password)
+    }
+
+
+
 
     companion object {
         private val DEFAULT_ORDER = MediaOrder.Date(OrderType.Descending)
