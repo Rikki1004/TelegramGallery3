@@ -1,0 +1,25 @@
+package com.rikkimikki.telegramgallery3.feature_node.data.data_types
+
+import android.content.ContentResolver
+import android.os.Bundle
+import android.provider.MediaStore
+import com.rikkimikki.telegramgallery3.feature_node.data.data_source.Query.MediaQuery
+import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
+import com.rikkimikki.telegramgallery3.feature_node.domain.util.MediaOrder
+import com.rikkimikki.telegramgallery3.feature_node.domain.util.OrderType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+suspend fun ContentResolver.getMediaTrashed(
+    mediaOrder: MediaOrder = MediaOrder.Date(OrderType.Descending)
+): List<Media> {
+    return withContext(Dispatchers.IO) {
+        val mediaQuery = MediaQuery().copy(
+            bundle = Bundle().apply {
+                putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_ONLY)
+            }
+        )
+        return@withContext mediaOrder.sortMedia(getMedia(mediaQuery))
+    }
+}
+
