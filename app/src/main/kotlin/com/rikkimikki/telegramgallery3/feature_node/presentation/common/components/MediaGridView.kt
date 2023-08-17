@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.integration.compose.rememberGlidePreloadingData
 import com.rikkimikki.telegramgallery3.R
@@ -51,6 +52,8 @@ import com.rikkimikki.telegramgallery3.feature_node.domain.model.MediaItem
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.isBigHeaderKey
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.isHeaderKey
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.isIgnoredKey
+import com.rikkimikki.telegramgallery3.feature_node.presentation.common.MediaViewModel
+import com.rikkimikki.telegramgallery3.feature_node.presentation.main.MainViewModel
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.update
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.vibrate
 import com.rikkimikki.telegramgallery3.ui.theme.Dimens
@@ -77,6 +80,10 @@ fun MediaGridView(
     val stringToday = stringResource(id = R.string.header_today)
     val stringYesterday = stringResource(id = R.string.header_yesterday)
 
+    //--
+    //val viewModel = hiltViewModel<MediaViewModel>()
+    //--
+
     val scope = rememberCoroutineScope()
     val mappedData =
         if (showMonthlyHeader) mediaState.mappedMediaWithMonthly else mediaState.mappedMedia
@@ -88,7 +95,8 @@ fun MediaGridView(
     ) { media: Media, requestBuilder: RequestBuilder<Drawable> ->
         requestBuilder
             .signature(MediaKey(media.id, media.timestamp, media.mimeType, media.orientation))
-            .load(media.uri)
+            //.load(media.uri)
+            .load(R.drawable.malevich)
     }
     /** ************ **/
 

@@ -1,9 +1,14 @@
 package com.rikkimikki.telegramgallery3.feature_node.data.telegram.core
 
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.ResultHandlerStateFlow
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getAuthorizationState
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getCurrentState
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getMe
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.transform
 import org.drinkless.td.libcore.telegram.Client
 import org.drinkless.td.libcore.telegram.TdApi
 import java.io.Closeable

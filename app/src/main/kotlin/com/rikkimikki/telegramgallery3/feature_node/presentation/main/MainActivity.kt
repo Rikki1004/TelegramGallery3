@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rikkimikki.telegramgallery3.core.Settings.Misc.getSecureMode
@@ -54,11 +55,13 @@ class MainActivity : ComponentActivity() {
                 val viewModel: MainViewModel = viewModel()
                 //val viewModel = hiltViewModel<MainViewModel>()
 
-                val authState = viewModel.authState.collectAsState(AuthState.Initial)
+                val authState = viewModel.authState.collectAsState(viewModel.initState)
 
                 var isOvercome by rememberSaveable { mutableStateOf(false) }
 
-                when (authState.value) {
+                val a = authState.value
+                viewModel.initState = a
+                when (a) {
                     AuthState.LoggedIn -> {
                         val navController = rememberAnimatedNavController()
                         val isScrolling = remember { mutableStateOf(false) }

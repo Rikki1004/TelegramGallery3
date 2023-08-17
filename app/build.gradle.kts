@@ -191,6 +191,9 @@ dependencies {
     // Fuzzy Search
     implementation(libs.fuzzywuzzy)
 
+    // Gson
+    implementation(libs.google.gson)
+
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

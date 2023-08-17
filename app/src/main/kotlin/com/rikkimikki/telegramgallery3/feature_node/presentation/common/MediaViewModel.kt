@@ -33,6 +33,12 @@ open class MediaViewModel @Inject constructor(
     val selectedPhotoState = mutableStateListOf<Media>()
     val handler = mediaUseCases.mediaHandleUseCase
 
+    //-
+    val thumbLoader = mediaUseCases.loadThumbnailUseCase
+    val photoLoader = mediaUseCases.loadPhotoUseCase
+    val videoLoader = mediaUseCases.loadVideoUseCase
+    //-
+
     var albumId: Long = -1L
         set(value) {
             getMedia(albumId = value)

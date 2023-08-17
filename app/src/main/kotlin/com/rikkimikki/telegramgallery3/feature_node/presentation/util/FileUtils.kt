@@ -143,7 +143,8 @@ class FileUtils(var context: Context) {
         if ("file".equals(uri.scheme, ignoreCase = true)) {
             return uri.path
         }
-        return copyFileToInternalStorage(uri, FALLBACK_COPY_FOLDER)
+        return uri.path
+        //return copyFileToInternalStorage(uri, FALLBACK_COPY_FOLDER)
     }
 
     private fun getDriveFilePath(uri: Uri): String {

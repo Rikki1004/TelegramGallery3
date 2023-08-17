@@ -14,8 +14,8 @@ import java.io.File
 data class Media(
     val id: Long = 0,
     val label: String,
-    val uri: Uri,
-    val path: String,
+    var uri: Uri,
+    var path: String,
     val albumID: Long,
     val albumLabel: String,
     val timestamp: Long,

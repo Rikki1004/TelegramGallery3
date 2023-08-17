@@ -18,7 +18,8 @@ suspend fun ContentResolver.getMedia(
             moveToFirst()
             while (!isAfterLast) {
                 try {
-                    media.add(getMediaFromCursor())
+                    val a = getMediaFromCursor()
+                    media.add(a)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
