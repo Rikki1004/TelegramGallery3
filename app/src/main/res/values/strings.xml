@@ -130,4 +130,23 @@
         <item quantity="one">%s item</item>
         <item quantity="other">%s items</item>
     </plurals>
+
+
+
+    <string name="template_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</string>
+    <string name="navigation_item_photo">Фото</string>
+    <string name="navigation_item_video">Видео</string>
+    <string name="navigation_item_albums">Альбомы</string>
+    <string name="button_login">Войти</string>
+
+    <string name="login_screen_input_number_help_text">Для хранения файлов используется телеграм, так что нужно сначала войти в него</string>
+    <string name="login_screen_input_code_help_text">Сейчас должен прийти код или в СМС, или в обычном приложении телеграма</string>
+    <string name="login_screen_input_password_help_text">На аккаунте стоит защита паролем</string>
+
+    <string name="phone_number_label">Номер телефона</string>
+    <string name="sms_code_label">Код из СМС</string>
+    <string name="password_label">облачный пароль</string>
+
+    <string name="login_screen_phone_placeholder">8 800 555 35 35</string>
+    <string name="submit_button">Отправить</string>
 </resources>

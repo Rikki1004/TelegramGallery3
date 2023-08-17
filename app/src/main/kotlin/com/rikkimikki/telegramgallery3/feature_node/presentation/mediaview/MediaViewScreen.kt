@@ -159,7 +159,7 @@ fun MediaViewScreen(
         }
         MediaViewAppBar(
             showUI = showUI.value,
-            showInfo = currentMedia.value?.trashed == 0 && !(currentMedia.value?.readUriOnly() ?: false),
+            showInfo = currentMedia.value?.trashed == 0, //&& !(currentMedia.value?.readUriOnly() ?: false),
             showDate = currentMedia.value?.timestamp != 0L,
             currentDate = currentDate.value,
             bottomSheetState = bottomSheetState,

@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.room.Room
 import com.rikkimikki.telegramgallery3.feature_node.data.data_source.InternalDatabase
 import com.rikkimikki.telegramgallery3.feature_node.data.repository.MediaRepositoryImpl
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.TelegramCredentials
 import com.rikkimikki.telegramgallery3.feature_node.domain.repository.MediaRepository
 import com.rikkimikki.telegramgallery3.feature_node.domain.use_case.MediaUseCases
 import dagger.Module
@@ -41,8 +42,17 @@ object AppModule {
     @Singleton
     fun provideMediaRepository(
         contentResolver: ContentResolver,
-        database: InternalDatabase
+        database: InternalDatabase,
+        telegramCredentials: TelegramCredentials
     ): MediaRepository {
-        return MediaRepositoryImpl(contentResolver, database)
+        return MediaRepositoryImpl(contentResolver, database,telegramCredentials)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTelegramCredentials(
+        @ApplicationContext context: Context
+    ): TelegramCredentials {
+        return TelegramCredentials(context)
     }
 }

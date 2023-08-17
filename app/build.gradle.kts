@@ -17,6 +17,12 @@ android {
     namespace = "com.rikkimikki.telegramgallery3"
     compileSdk = 34
 
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDir("src/main/jniLibs")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.rikkimikki.telegramgallery3"
         minSdk = 30
@@ -184,6 +190,9 @@ dependencies {
 
     // Fuzzy Search
     implementation(libs.fuzzywuzzy)
+
+    // Gson
+    implementation(libs.google.gson)
 
     // Tests
     testImplementation(libs.junit)

@@ -5,11 +5,15 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import com.rikkimikki.telegramgallery3.core.Resource
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Album
+import com.rikkimikki.telegramgallery3.feature_node.domain.model.Index
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.PinnedAlbum
+import com.rikkimikki.telegramgallery3.feature_node.domain.util.AuthState
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.MediaOrder
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import org.drinkless.td.libcore.telegram.TdApi
 
 interface MediaRepository {
 
@@ -55,5 +59,17 @@ interface MediaRepository {
         result: ActivityResultLauncher<IntentSenderRequest>,
         mediaList: List<Media>
     )
+
+
+    fun checkAuthState() : Flow<AuthState>
+    fun startTelegram()
+    suspend fun authSendPhone(phone: String)
+    suspend fun authSendCode(code: String)
+    suspend fun authSendPassword(password: String)
+    suspend fun uploadIndex()
+    suspend fun getIndex(): Index
+    suspend fun loadThumbnail(messageId: Long): TdApi.File
+    suspend fun loadPhoto(messageId: Long): TdApi.File
+    suspend fun loadVideo(messageId: Long): TdApi.File
 
 }

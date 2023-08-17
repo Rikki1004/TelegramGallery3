@@ -20,4 +20,16 @@ data class MediaUseCases(
     val mediaHandleUseCase = MediaHandleUseCase(repository, context)
     val insertPinnedAlbumUseCase = InsertPinnedAlbumUseCase(repository)
     val deletePinnedAlbumUseCase = DeletePinnedAlbumUseCase(repository)
+
+    val authPerformResultUseCase = AuthPerformResultUseCase(repository)
+    val authSendPhoneUseCase = AuthSendPhoneUseCase(repository)
+    val authSendCodeUseCase = AuthSendCodeUseCase(repository)
+    val authSendPasswordUseCase = AuthSendPasswordUseCase(repository)
+    val authStartTelegramUseCase = AuthStartTelegramUseCase(repository)
+
+    val indexUploadUseCase = IndexUploadUseCase(repository)
+    val indexGetUseCase = IndexGetUseCase(repository)
+    val loadThumbnailUseCase = LoadThumbnailUseCase(repository)
+    val loadPhotoUseCase = LoadPhotoUseCase(repository)
+    val loadVideoUseCase = LoadVideoUseCase(repository)
 }

@@ -2,13 +2,18 @@ package com.rikkimikki.telegramgallery3.feature_node.data.repository
 
 import android.annotation.SuppressLint
 import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import android.os.Bundle
 import android.provider.MediaStore
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.core.app.ActivityOptionsCompat
+import androidx.core.net.toUri
+import com.rikkimikki.telegramgallery3.core.Constants
 import com.rikkimikki.telegramgallery3.core.Resource
 import com.rikkimikki.telegramgallery3.core.contentFlowObserver
 import com.rikkimikki.telegramgallery3.feature_node.data.data_source.InternalDatabase
@@ -20,27 +25,132 @@ import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaByUr
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaFavorite
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaListByUris
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaTrashed
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.TelegramCredentials
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramException
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramFlow
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.checkAuthenticationCode
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.checkAuthenticationPassword
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.checkDatabaseEncryptionKey
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.createPrivateChat
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.downloadFile
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.editMessageMedia
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getAuthorizationState
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getChat
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getChatHistory
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getMe
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getMessage
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.loadChats
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.pinChatMessage
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.searchChatMessages
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.sendMessage
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.setAuthenticationPhoneNumber
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.setLogVerbosityLevel
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.setTdlibParameters
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.extensions.ChatKtx
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.extensions.UserKtx
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.flows.authorizationStateFlow
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Album
+import com.rikkimikki.telegramgallery3.feature_node.domain.model.Index
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.PinnedAlbum
 import com.rikkimikki.telegramgallery3.feature_node.domain.repository.MediaRepository
+import com.rikkimikki.telegramgallery3.feature_node.domain.util.AuthState
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.MediaOrder
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.OrderType
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia.*
+import com.rikkimikki.telegramgallery3.feature_node.presentation.util.getDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import org.drinkless.td.libcore.telegram.TdApi
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileReader
 
 class MediaRepositoryImpl(
     private val contentResolver: ContentResolver,
-    private val database: InternalDatabase
-) : MediaRepository {
+    private val database: InternalDatabase,
+    private val telegramCredentials : TelegramCredentials
+) : MediaRepository, UserKtx, ChatKtx {
 
-    /**
-     * TODO: Add media reordering
-     */
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    override val api: TelegramFlow = TelegramFlow()
+    lateinit var index : Index
+    private lateinit var indexChat:TdApi.Chat
+    lateinit var indexMsg: TdApi.Message
+    lateinit var me : TdApi.User
+
+    private val authFlow = api.authorizationStateFlow()
+        .onEach {
+            println("ddd: "+it.toString())
+            checkRequiredParams(it)
+        }
+        .map {
+            if (api.runCatching { api.getMe() }.isSuccess){
+                getIndex()
+                //AuthState.LoggedIn
+                return@map AuthState.LoggedIn
+            }
+
+            when (it) {
+                is TdApi.AuthorizationStateReady -> {
+                    getIndex()
+                    AuthState.LoggedIn
+                }
+                is TdApi.AuthorizationStateWaitCode -> AuthState.EnterCode
+                is TdApi.AuthorizationStateWaitPassword -> AuthState.EnterPassword
+                is TdApi.AuthorizationStateWaitPhoneNumber -> AuthState.EnterPhone
+                else -> AuthState.Waiting
+            }
+        }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Lazily,
+            initialValue = AuthState.Initial
+        )
+
+    private suspend fun checkRequiredParams(state: TdApi.AuthorizationState?) {
+        when (state) {
+            is TdApi.AuthorizationStateWaitTdlibParameters -> {
+                api.setTdlibParameters(telegramCredentials.parameters)
+            }
+            is TdApi.AuthorizationStateWaitEncryptionKey ->{
+                api.checkDatabaseEncryptionKey(ByteArray(0))
+            }
+        }
+    }
+
     override fun getMedia(): Flow<Resource<List<Media>>> =
-        contentResolver.retrieveMedia { it.getMedia(mediaOrder = DEFAULT_ORDER) }
+        contentResolver.retrieveMedia {
+            index.photo.map { item ->
+                var formattedDate = ""
+                if (item.timestamp != 0L) {
+                    formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
+                }
+                Media(
+                    id = item.msgId,
+                    label = item.label,
+                    uri = "".toUri(),
+                    path = "",
+                    albumID = -99L,
+                    albumLabel = "",
+                    timestamp = item.timestamp,
+                    fullDate = formattedDate,
+                    mimeType = item.mimeType,
+                    favorite = 0,
+                    trashed = 0,
+                    orientation = 0
+
+                )
+            }
+        }
 
     override fun getMediaByType(allowedMedia: AllowedMedia): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia {
@@ -237,6 +347,196 @@ class MediaRepositoryImpl(
             .build()
         result.launch(senderRequest)
     }
+
+
+
+
+
+    override fun startTelegram() {
+        api.attachClient()
+    }
+    override fun checkAuthState(): Flow<AuthState> {
+        return authFlow
+    }
+
+    override suspend fun authSendPhone(phone: String) {
+        api.setAuthenticationPhoneNumber(phone, null)
+    }
+
+    override suspend fun authSendCode(code: String) {
+        api.checkAuthenticationCode(code)
+    }
+
+    override suspend fun authSendPassword(password: String) {
+        api.checkAuthenticationPassword(password)
+    }
+
+
+
+
+
+
+    suspend fun newIndex():String{
+
+        val tempFile = File.createTempFile("index2", ".tg")
+        val newIndexText = """{"supportedTags" : [], "photo" : [], "video" : []"""
+
+        tempFile.writeText(newIndexText)
+
+        val inputFileLocal = TdApi.InputFileLocal(tempFile.path)
+        val formattedText = TdApi.FormattedText("index2.tg", arrayOf())
+        val doc = TdApi.InputMessageDocument(inputFileLocal,TdApi.InputThumbnail(),false, formattedText)
+
+        val options = TdApi.MessageSendOptions(true,false,null)
+
+        indexMsg = api.sendMessage(me.id,0, options,null, doc)
+
+        tempFile.delete()
+        return newIndexText
+    }
+    override suspend fun uploadIndex(){
+        val objectMapper: Gson = GsonBuilder()
+            .setLenient()
+            .create()
+
+        val miniIndex = objectMapper.toJson(index)
+
+        val tempFile = File.createTempFile("index2", ".tg")
+
+        tempFile.writeText(miniIndex)
+
+
+        val inputFileLocal = TdApi.InputFileLocal(tempFile.path)
+        val formattedText = TdApi.FormattedText("index2.tg", arrayOf())
+        val doc = TdApi.InputMessageDocument(inputFileLocal,TdApi.InputThumbnail(),false, formattedText)
+        val newIndex = api.editMessageMedia(me.id, indexMsg.id,null,doc)
+
+        tempFile.delete()
+    }
+    override suspend fun getIndex() : Index{
+        me = api.getMe()//api.getChatPinnedMessage(api.getMe().id.toLong())
+        findIndexChat()
+
+        val objectMapper: Gson = GsonBuilder()
+            .setLenient()
+            .create()
+
+        val a = api.searchChatMessages(indexChat.id,"index2.tg",0,0,0,100,TdApi.SearchMessagesFilterDocument()).messages
+            .filter { item-> item.content is TdApi.MessageDocument && (item.content as TdApi.MessageDocument).caption.text == "index2.tg" }.toMutableList()
+        if (a.isEmpty()){
+
+            newIndex()
+            delay(1000L)
+            return getIndex()
+
+        } else {
+            indexMsg = a[0]
+        }
+
+        if (!indexMsg.isPinned)
+            api.pinChatMessage(me.id,indexMsg.id,true)
+
+        val doc = indexMsg.content as TdApi.MessageDocument
+
+        val filePath = api.downloadFile(doc.document.document.id,31,0,0,true).local.path
+
+        val stringBuilder = StringBuilder()
+        try {
+            val file = File(filePath)
+            val reader = BufferedReader(FileReader(file))
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                stringBuilder.append(line)
+            }
+            reader.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        val str = stringBuilder.toString()
+        index = objectMapper.fromJson(str, Index::class.java)
+
+        return index
+    }
+
+    private suspend fun findIndexChat() {
+        api.setLogVerbosityLevel(2)
+        val chatsPart = api.loadChats(TdApi.ChatListMain() ,100)
+        if (chatsPart is TdApi.Error){
+            indexChat = api.createPrivateChat(me.id,false)
+            return
+        } else {
+            try {
+                indexChat = api.getChat(me.id)
+                return
+            } catch (e: TelegramException){
+                findIndexChat()
+            }
+        }
+        return
+    }
+
+    private suspend fun messageIdToFileId(messageId: Long, getThumb: Boolean = false):Int{
+        val messages = api.getChatHistory(me.id, (messageId*1024*1024),-1,1,false).messages
+        val message = if (messages.isEmpty()) TdApi.Message() else messages[0]
+        println(messageId)
+        return when(message.content.constructor) {
+            TdApi.MessageDocument.CONSTRUCTOR -> {
+                val doc = message.content as TdApi.MessageDocument
+                if (getThumb){
+                    doc.document.thumbnail!!.file.id //doc.document.thumbnail?.file.id :?doc.document.document.id
+                } else {
+                    doc.document.document.id
+                }
+                //doc.document.document.id
+            }
+            TdApi.MessageVideo.CONSTRUCTOR -> {
+                val video = message.content as TdApi.MessageVideo
+                if (getThumb){
+                    video.video.thumbnail!!.file.id
+                } else {
+                    video.video.video.id
+                }
+            }
+            TdApi.MessageAudio.CONSTRUCTOR -> {
+                val audio = message.content as TdApi.MessageAudio
+                audio.audio.audio.id
+            }
+            TdApi.MessagePhoto.CONSTRUCTOR -> {
+                val photo = message.content as TdApi.MessagePhoto
+                if (getThumb){
+                    photo.photo.sizes[0].photo.id
+                } else {
+                    photo.photo.sizes[photo.photo.sizes.size-1].photo.id
+                }
+            }
+            TdApi.MessageAnimation.CONSTRUCTOR -> {
+                val anime = message.content as TdApi.MessageAnimation
+                anime.animation.animation.id
+            }
+            else -> {
+                print(message)
+                throw Exception("-a-")
+            }
+        }
+    }
+
+    override suspend fun loadThumbnail(messageId:Long): TdApi.File {
+        val fileId = messageIdToFileId(messageId,true)
+        return api.downloadFile(fileId,32,0,0,true)
+    }
+
+    override suspend fun loadPhoto(messageId:Long): TdApi.File {
+        val fileId = messageIdToFileId(messageId,false)
+        return api.downloadFile(fileId,32,0,0,true)
+    }
+
+    override suspend fun loadVideo(messageId:Long): TdApi.File {
+        val fileId = messageIdToFileId(messageId,false)
+        return api.downloadFile(fileId,32,0,0,true)
+    }
+
+
 
     companion object {
         private val DEFAULT_ORDER = MediaOrder.Date(OrderType.Descending)

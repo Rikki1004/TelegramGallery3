@@ -8,14 +8,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.rikkimikki.telegramgallery3.R
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
+import com.rikkimikki.telegramgallery3.feature_node.presentation.common.MediaViewModel
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 
@@ -25,26 +31,26 @@ fun ZoomablePagerImage(
     modifier: Modifier = Modifier,
     media: Media,
     scrollEnabled: MutableState<Boolean>,
-    maxScale: Float = 25f,
+    maxScale: Float = 35f,
     maxImageSize: Int,
     onItemClick: () -> Unit
 ) {
+    //--
+    val viewModel = hiltViewModel<MediaViewModel>()
+    //--
     val zoomState = rememberZoomState(
         maxScale = maxScale
     )
-    val painter = rememberAsyncImagePainter(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(media.uri)
-            .memoryCacheKey("media_${media.label}_${media.id}")
-            .diskCacheKey("media_${media.label}_${media.id}")
-            .size(maxImageSize)
-            .build(),
-        contentScale = ContentScale.Fit,
-        filterQuality = FilterQuality.None,
-        onSuccess = {
-            zoomState.setContentSize(it.painter.intrinsicSize)
-        }
-    )
+
+
+    val mediaUri = remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        val item = viewModel.photoLoader(media.id)
+        mediaUri.value = item.local.path
+        media.path = item.local.path
+        media.uri = item.local.path.toUri()
+    }
+
 
     LaunchedEffect(zoomState.scale) {
         scrollEnabled.value = zoomState.scale == 1f
@@ -62,7 +68,20 @@ fun ZoomablePagerImage(
             .zoomable(
                 zoomState = zoomState,
             ),
-        painter = painter,
+        painter =
+            if (mediaUri.value == null)
+                painterResource(id = R.drawable.malevich)
+            else rememberAsyncImagePainter(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(mediaUri.value)
+                    .size(maxImageSize)
+                    .build(),
+                contentScale = ContentScale.Fit,
+                filterQuality = FilterQuality.None,
+                onSuccess = {
+                    zoomState.setContentSize(it.painter.intrinsicSize)
+                }
+            ),
         contentScale = ContentScale.Fit,
         contentDescription = media.label
     )
