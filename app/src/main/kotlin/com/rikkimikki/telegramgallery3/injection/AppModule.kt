@@ -41,11 +41,12 @@ object AppModule {
     @Provides
     @Singleton
     fun provideMediaRepository(
+        @ApplicationContext context: Context,
         contentResolver: ContentResolver,
         database: InternalDatabase,
         telegramCredentials: TelegramCredentials
     ): MediaRepository {
-        return MediaRepositoryImpl(contentResolver, database,telegramCredentials)
+        return MediaRepositoryImpl(context, contentResolver, database,telegramCredentials)
     }
 
     @Provides

@@ -8,10 +8,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rikkimikki.telegramgallery3.core.MediaState
 import com.rikkimikki.telegramgallery3.core.Resource
+import com.rikkimikki.telegramgallery3.feature_node.data.repository.LocalServer
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.domain.use_case.MediaUseCases
+import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.collectMedia
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.mediaFlow
+import com.rikkimikki.telegramgallery3.feature_node.presentation.util.mediaFlowWithType
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.update
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +40,8 @@ open class MediaViewModel @Inject constructor(
     val thumbLoader = mediaUseCases.loadThumbnailUseCase
     val photoLoader = mediaUseCases.loadPhotoUseCase
     val videoLoader = mediaUseCases.loadVideoUseCase
+    val api = mediaUseCases.provideApiUseCase()
+    private val server = LocalServer(8081,api)
     //-
 
     var albumId: Long = -1L
@@ -56,8 +61,29 @@ open class MediaViewModel @Inject constructor(
      * Used in PhotosScreen to retrieve all media
      */
     fun launchInPhotosScreen() {
-        getMedia(-1, null)
+        getMediaWithType(-1, AllowedMedia.PHOTOS)
     }
+    fun launchInVideoScreen() {
+        getMediaWithType(-1, AllowedMedia.VIDEOS)
+    }
+    fun onServer(){
+        if(!server.wasStarted())
+            server.start()
+        //server.clear()
+    }
+    fun offServer(){
+        if(server.wasStarted()){
+            server.closeAllConnections()
+            server.stop()
+        }
+        server.clear()
+
+    }
+    fun cleaner(){
+        mediaUseCases.cleanOldFilesUseCase()
+        //server.clear()
+    }
+
 
     fun toggleFavorite(
         result: ActivityResultLauncher<IntentSenderRequest>,
@@ -82,6 +108,25 @@ open class MediaViewModel @Inject constructor(
         }
     }
 
+    private fun getMediaWithType(albumId: Long = -1L, allowedMedia: AllowedMedia) {
+        viewModelScope.launch {
+            mediaUseCases.mediaFlowWithType(albumId, allowedMedia).flowOn(Dispatchers.IO).collectLatest { result ->
+                val data = result.data ?: emptyList()
+                if (data == mediaState.value.media) return@collectLatest
+                val error = if (result is Resource.Error) result.message
+                    ?: "An error occurred" else ""
+                if (data.isEmpty()) {
+                    return@collectLatest _mediaState.emit(MediaState())
+                }
+                return@collectLatest _mediaState.collectMedia(
+                    data = data,
+                    error = error,
+                    albumId = albumId,
+                    groupByMonth = groupByMonth
+                )
+            }
+        }
+    }
     private fun getMedia(albumId: Long = -1L, target: String? = null) {
         viewModelScope.launch {
             mediaUseCases.mediaFlow(albumId, target).flowOn(Dispatchers.IO).collectLatest { result ->

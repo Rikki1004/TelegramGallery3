@@ -154,6 +154,8 @@ dependencies {
     kapt(libs.dagger.hilt.compiler)
     kapt(libs.androidx.hilt.compiler)
 
+    implementation (libs.nanohttpd)
+
     // Room
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)

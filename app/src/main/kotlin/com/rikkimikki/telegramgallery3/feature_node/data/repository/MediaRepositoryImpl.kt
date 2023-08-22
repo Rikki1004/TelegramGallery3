@@ -5,14 +5,14 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import android.os.Bundle
 import android.provider.MediaStore
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.net.toUri
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.rikkimikki.telegramgallery3.core.Constants
 import com.rikkimikki.telegramgallery3.core.Resource
 import com.rikkimikki.telegramgallery3.core.contentFlowObserver
@@ -34,11 +34,10 @@ import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.che
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.createPrivateChat
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.downloadFile
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.editMessageMedia
-import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getAuthorizationState
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getChat
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getChatHistory
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getDatabaseStatistics
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getMe
-import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getMessage
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.loadChats
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.pinChatMessage
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.searchChatMessages
@@ -65,7 +64,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -75,6 +73,7 @@ import java.io.File
 import java.io.FileReader
 
 class MediaRepositoryImpl(
+    private val context: Context,
     private val contentResolver: ContentResolver,
     private val database: InternalDatabase,
     private val telegramCredentials : TelegramCredentials
@@ -129,7 +128,7 @@ class MediaRepositoryImpl(
 
     override fun getMedia(): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia {
-            index.photo.map { item ->
+            (index.photo+index.video).map { item ->
                 var formattedDate = ""
                 if (item.timestamp != 0L) {
                     formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
@@ -154,13 +153,44 @@ class MediaRepositoryImpl(
 
     override fun getMediaByType(allowedMedia: AllowedMedia): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia {
+            val items = when (allowedMedia) {
+                PHOTOS -> index.photo
+                VIDEOS -> index.video
+                BOTH -> index.photo+index.video
+            }
+            items.map { item ->
+                var formattedDate = ""
+                if (item.timestamp != 0L) {
+                    formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
+                }
+                Media(
+                    id = item.msgId,
+                    label = item.label,
+                    uri = "".toUri(),
+                    path = "",
+                    albumID = -99L,
+                    albumLabel = "",
+                    timestamp = item.timestamp,
+                    fullDate = formattedDate,
+                    mimeType = item.mimeType,
+                    favorite = 0,
+                    trashed = 0,
+                    orientation = 0,
+                    duration = item.duration
+
+                )
+            }
+        }
+
+    /*override fun getMediaByType(allowedMedia: AllowedMedia): Flow<Resource<List<Media>>> =
+        contentResolver.retrieveMedia {
             val query = when (allowedMedia) {
                 PHOTOS -> Query.PhotoQuery()
                 VIDEOS -> Query.VideoQuery()
                 BOTH -> Query.MediaQuery()
             }
             it.getMedia(mediaQuery = query, mediaOrder = DEFAULT_ORDER)
-        }
+        }*/
 
     override fun getFavorites(mediaOrder: MediaOrder): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia { it.getMediaFavorite(mediaOrder = mediaOrder) }
@@ -349,9 +379,6 @@ class MediaRepositoryImpl(
     }
 
 
-
-
-
     override fun startTelegram() {
         api.attachClient()
     }
@@ -370,9 +397,6 @@ class MediaRepositoryImpl(
     override suspend fun authSendPassword(password: String) {
         api.checkAuthenticationPassword(password)
     }
-
-
-
 
 
 
@@ -533,7 +557,23 @@ class MediaRepositoryImpl(
 
     override suspend fun loadVideo(messageId:Long): TdApi.File {
         val fileId = messageIdToFileId(messageId,false)
-        return api.downloadFile(fileId,32,0,0,true)
+        //return api.getFile(fileId)
+        return api.downloadFile(fileId,32,0,1,true)
+        //return api.downloadFile(fileId,32,0,0,true)
+    }
+
+    override fun cleaner() {
+        val files1 = File(context.filesDir.absolutePath + "/td/documents").listFiles()!!
+        //val files2 = File(context.filesDir.absolutePath + "/td/thumbnails").listFiles()!!
+        //val files3 = File(context.filesDir.absolutePath + "/td/temp").listFiles()!!
+        //for (tempFile in files1+files2+files3) {
+        for (tempFile in files1) {
+            tempFile.delete()
+        }
+    }
+
+    override fun provideApi(): TelegramFlow {
+        return api
     }
 
 

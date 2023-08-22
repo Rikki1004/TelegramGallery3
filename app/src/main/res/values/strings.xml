@@ -149,4 +149,5 @@
 
     <string name="login_screen_phone_placeholder">8 800 555 35 35</string>
     <string name="submit_button">Отправить</string>
+    <string name="loading_text">Подключение к серверу телеграм</string>
 </resources>

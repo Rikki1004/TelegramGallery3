@@ -65,10 +65,10 @@ fun NavigationComp(
 
     AnimatedNavHost(
         navController = navController,
-        startDestination = Screen.TimelineScreen.route
+        startDestination = Screen.TimelinePhotoScreen.route
     ) {
         composable(
-            route = Screen.TimelineScreen.route,
+            route = Screen.TimelinePhotoScreen.route,
             enterTransition = { navigateInAnimation },
             exitTransition = { navigateUpAnimation },
             popEnterTransition = { navigateInAnimation },
@@ -80,8 +80,37 @@ fun NavigationComp(
                     .apply { groupByMonth = groupTimelineByMonth }
 
             TimelineScreen(
+                isPhoto = true,
                 paddingValues = paddingValues,
                 retrieveMedia = viewModel::launchInPhotosScreen,
+                handler = viewModel.handler,
+                mediaState = viewModel.mediaState,
+                selectionState = viewModel.multiSelectState,
+                selectedMedia = viewModel.selectedPhotoState,
+                toggleSelection = viewModel::toggleSelection,
+                allowNavBar = !useNavRail,
+                navigate = navPipe::navigate,
+                navigateUp = navPipe::navigateUp,
+                toggleNavbar = navPipe::toggleNavbar,
+                isScrolling = isScrolling,
+            )
+        }
+        composable(
+            route = Screen.TimelineVideoScreen.route,
+            enterTransition = { navigateInAnimation },
+            exitTransition = { navigateUpAnimation },
+            popEnterTransition = { navigateInAnimation },
+            popExitTransition = { navigateUpAnimation }
+        ) {
+            val viewModel =
+                hiltViewModel<MediaViewModel>()
+                    .apply(MediaViewModel::launchInVideoScreen)
+                    .apply { groupByMonth = groupTimelineByMonth }
+
+            TimelineScreen(
+                isPhoto = false,
+                paddingValues = paddingValues,
+                retrieveMedia = viewModel::launchInVideoScreen,
                 handler = viewModel.handler,
                 mediaState = viewModel.mediaState,
                 selectionState = viewModel.multiSelectState,
@@ -197,7 +226,7 @@ fun NavigationComp(
         }
         composable(
             route = Screen.MediaViewScreen.route +
-                    "?mediaId={mediaId}&albumId={albumId}",
+                    "?isPhoto={isPhoto}&mediaId={mediaId}&albumId={albumId}",
             enterTransition = { navigateInAnimation },
             exitTransition = { navigateUpAnimation },
             popEnterTransition = { navigateInAnimation },
@@ -210,17 +239,33 @@ fun NavigationComp(
                 navArgument(name = "albumId") {
                     type = NavType.LongType
                     defaultValue = -1
+                },
+                navArgument(name = "isPhoto") {
+                    type = NavType.BoolType
+                    defaultValue = true
                 }
             )
         ) { backStackEntry ->
             val mediaId: Long = backStackEntry.arguments?.getLong("mediaId") ?: -1
             val albumId: Long = backStackEntry.arguments?.getLong("albumId") ?: -1
+            val isPhoto: Boolean = backStackEntry.arguments?.getBoolean("isPhoto") ?: true
+            val route = if (isPhoto) Screen.TimelinePhotoScreen.route else Screen.TimelineVideoScreen.route
             val entryName =
-                if (albumId == -1L) Screen.TimelineScreen.route else Screen.AlbumViewScreen.route
+                if (albumId == -1L) route else Screen.AlbumViewScreen.route
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(entryName)
             }
             val viewModel = hiltViewModel<MediaViewModel>(parentEntry)
+
+            if (route == Screen.TimelineVideoScreen.route){
+                viewModel.onServer()
+            }
+            else{
+                viewModel.offServer()
+                viewModel.cleaner()
+            }
+
+
             MediaViewScreen(
                 paddingValues = paddingValues,
                 mediaId = mediaId,
@@ -232,7 +277,7 @@ fun NavigationComp(
         }
         composable(
             route = Screen.MediaViewScreen.route +
-                    "?mediaId={mediaId}&target={target}",
+                    "?isPhoto={isPhoto}&mediaId={mediaId}&target={target}",
             enterTransition = { navigateInAnimation },
             exitTransition = { navigateUpAnimation },
             popEnterTransition = { navigateInAnimation },
@@ -245,15 +290,21 @@ fun NavigationComp(
                 navArgument(name = "target") {
                     type = NavType.StringType
                     defaultValue = ""
+                },
+                navArgument(name = "isPhoto") {
+                    type = NavType.BoolType
+                    defaultValue = true
                 }
             )
         ) { backStackEntry ->
             val mediaId: Long = backStackEntry.arguments?.getLong("mediaId") ?: -1
             val target: String? = backStackEntry.arguments?.getString("target")
+            val isPhoto: Boolean = backStackEntry.arguments?.getBoolean("isPhoto") ?: true
+            val route = if (isPhoto) Screen.TimelinePhotoScreen.route else Screen.TimelineVideoScreen.route
             val entryName = when (target) {
                 TARGET_FAVORITES -> Screen.FavoriteScreen.route
                 TARGET_TRASH -> Screen.TrashedScreen.route
-                else -> Screen.TimelineScreen.route
+                else -> route//Screen.TimelinePhotoScreen.route
             }
             val parentEntry = remember(backStackEntry) {
                 navController.getBackStackEntry(entryName)

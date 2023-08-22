@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import com.rikkimikki.telegramgallery3.core.Resource
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramFlow
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Album
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Index
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
@@ -71,5 +72,7 @@ interface MediaRepository {
     suspend fun loadThumbnail(messageId: Long): TdApi.File
     suspend fun loadPhoto(messageId: Long): TdApi.File
     suspend fun loadVideo(messageId: Long): TdApi.File
+    fun provideApi(): TelegramFlow
+    fun cleaner()
 
 }
