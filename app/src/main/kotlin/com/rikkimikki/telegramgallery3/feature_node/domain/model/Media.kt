@@ -26,6 +26,7 @@ data class Media(
     val favorite: Int,
     val trashed: Int,
     val duration: String? = null,
+    val thumbnailMsgId: Long? = null,
 ) : Parcelable {
 
     override fun toString(): String {

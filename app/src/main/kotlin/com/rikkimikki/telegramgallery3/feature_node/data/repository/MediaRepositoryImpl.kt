@@ -4,6 +4,9 @@ import android.annotation.SuppressLint
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -36,7 +39,7 @@ import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.dow
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.editMessageMedia
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getChat
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getChatHistory
-import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getDatabaseStatistics
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getFile
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.getMe
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.loadChats
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.coroutines.pinChatMessage
@@ -70,7 +73,10 @@ import kotlinx.coroutines.flow.stateIn
 import org.drinkless.td.libcore.telegram.TdApi
 import java.io.BufferedReader
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileReader
+import java.io.InputStream
+import kotlin.math.min
 
 class MediaRepositoryImpl(
     private val context: Context,
@@ -176,7 +182,8 @@ class MediaRepositoryImpl(
                     favorite = 0,
                     trashed = 0,
                     orientation = 0,
-                    duration = item.duration
+                    duration = item.duration,
+                    thumbnailMsgId = item.thumbnailMsgId
 
                 )
             }
@@ -547,20 +554,31 @@ class MediaRepositoryImpl(
 
     override suspend fun loadThumbnail(messageId:Long): TdApi.File {
         val fileId = messageIdToFileId(messageId,true)
-        return api.downloadFile(fileId,32,0,0,true)
+        return api.downloadFile(fileId,31,0,0,true)
     }
 
     override suspend fun loadPhoto(messageId:Long): TdApi.File {
         val fileId = messageIdToFileId(messageId,false)
-        return api.downloadFile(fileId,32,0,0,true)
+        return api.downloadFile(fileId,30,0,0,true)
     }
 
     override suspend fun loadVideo(messageId:Long): TdApi.File {
         val fileId = messageIdToFileId(messageId,false)
-        //return api.getFile(fileId)
-        return api.downloadFile(fileId,32,0,1,true)
-        //return api.downloadFile(fileId,32,0,0,true)
+        return api.downloadFile(fileId,29,0,1,true)
     }
+
+    private lateinit var compositeBitmap:Bitmap
+    private var numFrames:Int = -1
+    override suspend fun prepareVideoThumbnail(messageId:Long) {
+        val fileId = messageIdToFileId(messageId,false)
+        val file = api.downloadFile(fileId,32,0,0,true)
+
+        val inputStream: InputStream = FileInputStream(file.local.path)
+        compositeBitmap = BitmapFactory.decodeStream(inputStream)
+
+        numFrames = compositeBitmap.width / PREWIEW_FRAME_WIDTH
+    }
+
 
     override fun cleaner() {
         val files1 = File(context.filesDir.absolutePath + "/td/documents").listFiles()!!
@@ -576,9 +594,22 @@ class MediaRepositoryImpl(
         return api
     }
 
+    override fun getVideoThumbnail(seconds: Long, totalSeconds: Long): Bitmap {
 
+        val frameIndex = min( (numFrames * (seconds / totalSeconds.toFloat()) ).toInt(), numFrames-1)
+
+        return Bitmap.createBitmap(
+            compositeBitmap,
+            frameIndex * PREWIEW_FRAME_WIDTH,
+            0,
+            PREWIEW_FRAME_WIDTH,
+            PREWIEW_FRAME_HEIGHT
+        )
+    }
 
     companion object {
+        private val PREWIEW_FRAME_WIDTH = 160
+        private val PREWIEW_FRAME_HEIGHT = 90
         private val DEFAULT_ORDER = MediaOrder.Date(OrderType.Descending)
         private val URIs = arrayOf(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,

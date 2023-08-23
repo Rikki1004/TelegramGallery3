@@ -14,5 +14,5 @@ data class Item (
     val favorite: Boolean,
     val trashed: Boolean,
     val duration: String? = null,
-    val storyboardMsgId: Long? = null,
+    val thumbnailMsgId: Long? = null,
 )

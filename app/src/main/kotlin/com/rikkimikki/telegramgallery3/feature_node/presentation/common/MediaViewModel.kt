@@ -1,5 +1,6 @@
 package com.rikkimikki.telegramgallery3.feature_node.presentation.common
 
+import android.graphics.Bitmap
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.compose.runtime.mutableStateListOf
@@ -40,6 +41,7 @@ open class MediaViewModel @Inject constructor(
     val thumbLoader = mediaUseCases.loadThumbnailUseCase
     val photoLoader = mediaUseCases.loadPhotoUseCase
     val videoLoader = mediaUseCases.loadVideoUseCase
+    val thumbPreparer = mediaUseCases.prepareVideoThumbnailUseCase
     val api = mediaUseCases.provideApiUseCase()
     private val server = LocalServer(8081,api)
     //-
@@ -145,6 +147,13 @@ open class MediaViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun videoThumbnailLoad(thumbnailCollect: Boolean, seconds: Long,totalSeconds: Long): Bitmap {
+        return if (!thumbnailCollect)
+            Bitmap.createBitmap(1, 1, Bitmap.Config.ALPHA_8)
+        else
+            mediaUseCases.loadVideoThumbnailUseCase(seconds,totalSeconds)
     }
 
 }

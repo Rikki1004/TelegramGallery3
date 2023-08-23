@@ -153,12 +153,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /*override fun onDestroy() {
-        super.onDestroy()
-        viewModel.cleaner()
-    }*/
-
-
     private fun enforceSecureFlag() {
         lifecycleScope.launch {
             getSecureMode(this@MainActivity).collectLatest { enabled ->

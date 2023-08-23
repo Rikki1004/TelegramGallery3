@@ -1,5 +1,6 @@
 package com.rikkimikki.telegramgallery3.feature_node.presentation.mediaview
 
+import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -138,7 +139,7 @@ fun MediaViewScreen(
                     showUI.value = !showUI.value
                     windowInsetsController.toggleSystemBars(showUI.value)
                 }
-            ) { player: ExoPlayer, currentTime: MutableState<Long>, totalTime: Long, buffer: Int, playToggle: () -> Unit ->
+            ) { player: ExoPlayer, currentTime: MutableState<Long>, totalTime: Long, buffer: Int, hasPreview: Boolean, playToggle: () -> Unit, onLoadPreview:  (Long,Long) -> Bitmap ->
                 AnimatedVisibility(
                     visible = showUI.value,
                     enter = enterAnimation(Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION),
@@ -151,12 +152,15 @@ fun MediaViewScreen(
                         currentTime = currentTime,
                         totalTime = totalTime,
                         buffer = buffer,
+                        hasPreview = hasPreview,
                         playToggle = playToggle,
-                        toggleRotate = toggleRotate
+                        toggleRotate = toggleRotate,
+                        onLoadPreview = onLoadPreview
                     )
                 }
             }
         }
+
         MediaViewAppBar(
             showUI = showUI.value,
             showInfo = currentMedia.value?.trashed == 0, //&& !(currentMedia.value?.readUriOnly() ?: false),

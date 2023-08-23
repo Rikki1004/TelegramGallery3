@@ -1,6 +1,7 @@
 package com.rikkimikki.telegramgallery3.feature_node.presentation.mediaview.components.video
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Environment
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -33,9 +34,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramException
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.presentation.common.MediaViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.engawapg.lib.zoomable.ZoomState
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
@@ -49,7 +52,7 @@ import kotlin.time.Duration.Companion.seconds
 fun VideoPlayer(
     media: Media,
     playWhenReady: Boolean,
-    videoController: @Composable (ExoPlayer, MutableState<Long>, Long, Int, () -> Unit) -> Unit,
+    videoController: @Composable (ExoPlayer, MutableState<Long>, Long, Int,Boolean, () -> Unit, (Long,Long) -> Bitmap) -> Unit,
     onItemClick: () -> Unit
 ) {
 
@@ -61,6 +64,7 @@ fun VideoPlayer(
 
     //--
     val viewModel = hiltViewModel<MediaViewModel>()
+    var thumbnailCollect by remember{mutableStateOf(false)}
     //--
     val zoomState = rememberZoomState(
         maxScale = 30f
@@ -72,6 +76,19 @@ fun VideoPlayer(
         videoInfo.value = Triple(item.id, item.size, item.local.path)
         media.path = item.local.path
         media.uri = item.local.path.toUri()
+        /*launch {
+            media.thumbnailMsgId?.let { videoPreviewPath = viewModel.photoLoader(it).local.path}
+        }*/
+    }
+    LaunchedEffect(Unit) {
+        media.thumbnailMsgId?.let {
+            try {
+                viewModel.thumbPreparer(it)
+                thumbnailCollect = true
+            } catch (e: TelegramException){
+                e.printStackTrace()
+            }
+        }
     }
 
     val temp = videoInfo.value
@@ -122,17 +139,26 @@ fun VideoPlayer(
                         }
                     }
                 )
-                videoController(exoPlayer, currentTime, totalDuration, bufferedPercentage) {
-                    if (exoPlayer.isPlaying){
-                        exoPlayer.pause()
-                        isPlaying = false
+                videoController(
+                    exoPlayer,
+                    currentTime,
+                    totalDuration,
+                    bufferedPercentage,
+                    media.thumbnailMsgId != null,
+                    {
+                        if (exoPlayer.isPlaying){
+                            exoPlayer.pause()
+                            isPlaying = false
+                        }
+                        else{
+                            exoPlayer.play()
+                            isPlaying = true
+                        }
+                    },
+                    { currentTime, duration ->
+                        viewModel.videoThumbnailLoad(thumbnailCollect , currentTime, duration)
                     }
-                    else{
-                        exoPlayer.play()
-                        isPlaying = true
-                    }
-
-                }
+                )
             }
         ) {
             exoPlayer.addListener(

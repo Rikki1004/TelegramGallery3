@@ -85,7 +85,7 @@ fun BoxScope.MediaViewBottomBar(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    AnimatedVisibility(
+    /*AnimatedVisibility(
         visible = showUI,
         enter = Constants.Animation.enterAnimation(Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION),
         exit = Constants.Animation.exitAnimation(Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION),
@@ -121,7 +121,7 @@ fun BoxScope.MediaViewBottomBar(
                 )
             }
         }
-    }
+    }*/
     currentMedia?.let {
         val exifInterface = remember(currentMedia) {
             getExifInterface(context = context, uri = currentMedia.uri)

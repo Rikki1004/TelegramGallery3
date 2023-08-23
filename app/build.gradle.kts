@@ -163,6 +163,7 @@ dependencies {
     // Kotlin Extensions and Coroutines support for Room
     implementation(libs.room.ktx)
 
+
     // Glide
     implementation(libs.glide)
     implementation(libs.glide.compose)

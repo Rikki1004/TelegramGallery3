@@ -30,10 +30,18 @@ class LocalServer(port: Int, private val telegramFlow: TelegramFlow) : NanoHTTPD
 
         for (offset in startOffset..endOffset step MAX_CHUNK_SIZE.toLong()) {
             if (!downloadedBlockOffsets.getOrPut(fileId) { mutableSetOf() }.contains(offset)) {
-                runBlocking(Dispatchers.IO) {
-                    val file = telegramFlow.downloadFile(fileId, 31, offset.toInt(), MAX_CHUNK_SIZE, true)
-                    if (superSize.getOrPut(fileId) { 0 } == 0)
-                        superSize[fileId] = file.size
+                try {
+                    runBlocking(Dispatchers.IO) {
+                        val file = telegramFlow.downloadFile(fileId, 30, offset.toInt(), MAX_CHUNK_SIZE, true)
+                        if (superSize.getOrPut(fileId) { 0 } == 0)
+                            superSize[fileId] = file.size
+                    }
+                } catch (e: TelegramException){
+                    return newFixedLengthResponse(
+                        Response.Status.INTERNAL_ERROR,
+                        MIME_PLAINTEXT,
+                        "err"
+                    )
                 }
                 downloadedBlockOffsets.getValue(fileId).add(offset)
             }

@@ -1,5 +1,6 @@
 package com.rikkimikki.telegramgallery3.feature_node.domain.repository
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
@@ -13,7 +14,6 @@ import com.rikkimikki.telegramgallery3.feature_node.domain.util.AuthState
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.MediaOrder
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 import org.drinkless.td.libcore.telegram.TdApi
 
 interface MediaRepository {
@@ -73,6 +73,8 @@ interface MediaRepository {
     suspend fun loadPhoto(messageId: Long): TdApi.File
     suspend fun loadVideo(messageId: Long): TdApi.File
     fun provideApi(): TelegramFlow
+    fun getVideoThumbnail(seconds: Long, totalSeconds: Long): Bitmap
+    suspend fun prepareVideoThumbnail(messageId:Long)
     fun cleaner()
 
 }
