@@ -24,8 +24,8 @@ import java.text.DecimalFormat
 import java.util.UUID
 import kotlin.math.min
 
-fun File.formattedFileSize(context: Context): String {
-    var fileSize = this.length().toDouble() / 1024.0
+fun Long.formattedFileSize(context: Context): String {
+    var fileSize = this.toDouble() / 1024.0
     var fileSizeName = context.getString(R.string.kb)
     if (fileSize > 1024.0) {
         fileSize /= 1024.0

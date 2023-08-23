@@ -151,6 +151,7 @@ class MediaRepositoryImpl(
                     mimeType = item.mimeType,
                     favorite = 0,
                     trashed = 0,
+                    size = item.size,
                     orientation = 0
 
                 )
@@ -183,6 +184,7 @@ class MediaRepositoryImpl(
                     trashed = 0,
                     orientation = 0,
                     duration = item.duration,
+                    size = item.size,
                     thumbnailMsgId = item.thumbnailMsgId
 
                 )

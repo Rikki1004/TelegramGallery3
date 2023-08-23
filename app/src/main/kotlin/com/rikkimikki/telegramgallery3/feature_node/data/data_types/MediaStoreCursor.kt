@@ -80,6 +80,8 @@ fun Cursor.getMediaFromCursor(): Media {
         getLong(getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
     )
     val formattedDate = modifiedTimestamp.getDate(Constants.FULL_DATE_FORMAT)
+    val size: Long =
+        getLong(getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE))
     return Media(
         id = id,
         label = title,
@@ -94,6 +96,7 @@ fun Cursor.getMediaFromCursor(): Media {
         favorite = isFavorite,
         trashed = isTrashed,
         orientation = orientation,
-        mimeType = mimeType
+        mimeType = mimeType,
+        size = size
     )
 }

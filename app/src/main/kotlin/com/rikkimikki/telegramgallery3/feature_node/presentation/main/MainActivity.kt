@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         println(filesDir.absolutePath)
-        enforceSecureFlag()
+        //enforceSecureFlag()
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             GalleryTheme {

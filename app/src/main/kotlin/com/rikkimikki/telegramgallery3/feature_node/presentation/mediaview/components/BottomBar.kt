@@ -85,53 +85,10 @@ fun BoxScope.MediaViewBottomBar(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    /*AnimatedVisibility(
-        visible = showUI,
-        enter = Constants.Animation.enterAnimation(Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION),
-        exit = Constants.Animation.exitAnimation(Constants.DEFAULT_TOP_BAR_ANIMATION_DURATION),
-        modifier = Modifier
-            .fillMaxWidth()
-            .align(Alignment.BottomCenter)
-    ) {
-        Row(
-            modifier = Modifier
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Black40P)
-                    )
-                )
-                .padding(
-                    top = 24.dp,
-                    bottom = paddingValues.calculateBottomPadding()
-                )
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .align(Alignment.BottomCenter),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            if (currentMedia != null) {
-                MediaViewActions(
-                    currentIndex = currentIndex,
-                    currentMedia = currentMedia,
-                    handler = handler,
-                    onDeleteMedia = onDeleteMedia,
-                    result = result,
-                    showDeleteButton = showDeleteButton
-                )
-            }
-        }
-    }*/
     currentMedia?.let {
-        val exifInterface = remember(currentMedia) {
-            getExifInterface(context = context, uri = currentMedia.uri)
-        }
-        if (exifInterface != null) {
-            val exifMetadata = remember(currentMedia) {
-                ExifMetadata(exifInterface)
-            }
+
             val metadataList = remember(currentMedia) {
-                currentMedia.retrieveMetadata(context, exifMetadata)
+                currentMedia.retrieveMetadata(context)
             }
             if (bottomSheetState.isVisible) {
                 ModalBottomSheet(
@@ -151,7 +108,6 @@ fun BoxScope.MediaViewBottomBar(
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         MediaViewDateContainer(
                             currentMedia = currentMedia,
-                            exifMetadata = exifMetadata
                         ) {
                             for (metadata in metadataList) {
                                 MediaInfoRow(
@@ -162,12 +118,12 @@ fun BoxScope.MediaViewBottomBar(
                             }
                         }
                         Spacer(modifier = Modifier.size(16.dp))
-                        LocationInfo(exifMetadata = exifMetadata)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        //LocationInfo(exifMetadata = exifMetadata)
+                        //Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
-        }
+
         BackHandler(bottomSheetState.isVisible) {
             scope.launch {
                 bottomSheetState.hide()
@@ -179,7 +135,6 @@ fun BoxScope.MediaViewBottomBar(
 @Composable
 private fun MediaViewDateContainer(
     currentMedia: Media,
-    exifMetadata: ExifMetadata,
     content: @Composable () -> Unit
 ) {
     Column(
@@ -208,14 +163,6 @@ private fun MediaViewDateContainer(
                         fontWeight = FontWeight.Light,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    exifMetadata.lensDescription?.let {
-                        Text(
-                            text = it,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Light,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
                 }
                 IconButton(onClick = { /*TODO*/ }) {
                     Image(
@@ -225,98 +172,8 @@ private fun MediaViewDateContainer(
                     )
                 }
             }
-            Text(
-                text = exifMetadata.imageDescription
-                    ?: stringResource(R.string.image_add_description),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-            )
         }
         content()
-    }
-}
-
-@Composable
-private fun MediaViewActions(
-    currentIndex: Int,
-    currentMedia: Media,
-    handler: MediaHandleUseCase,
-    onDeleteMedia: ((Int) -> Unit)?,
-    result: ActivityResultLauncher<IntentSenderRequest>?,
-    showDeleteButton: Boolean
-) {
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val favoriteIcon by remember(currentMedia) {
-        mutableStateOf(
-            if (currentMedia.favorite == 1)
-                Icons.Filled.Favorite
-            else Icons.Outlined.FavoriteBorder
-        )
-    }
-    // Share Component
-    BottomBarColumn(
-        currentMedia = currentMedia,
-        imageVector = Icons.Outlined.Share,
-        title = stringResource(R.string.share)
-    ) {
-        context.shareMedia(media = it)
-    }
-    if (!currentMedia.readUriOnly() && currentMedia.trashed == 0) {
-        // Favorite Component
-        BottomBarColumn(
-            currentMedia = currentMedia,
-            imageVector = favoriteIcon,
-            title = stringResource(id = R.string.favorites)
-        ) {
-            result?.let { result ->
-                scope.launch {
-                    handler.toggleFavorite(result = result, arrayListOf(it), it.favorite != 1)
-                }
-            }
-        }
-    }
-    // Edit
-    BottomBarColumn(
-        currentMedia = currentMedia,
-        imageVector = Icons.Outlined.Edit,
-        title = stringResource(R.string.edit)
-    ) {
-        scope.launch { context.launchEditIntent(it) }
-    }
-    // Use as or Open With
-    if (currentMedia.mimeType.startsWith("video")) {
-        BottomBarColumn(
-            currentMedia = currentMedia,
-            imageVector = Icons.Outlined.OpenInNew,
-            title = stringResource(R.string.open_with)
-        ) {
-            scope.launch { context.launchOpenWithIntent(it) }
-        }
-    } else {
-        BottomBarColumn(
-            currentMedia = currentMedia,
-            imageVector = Icons.Outlined.OpenInNew,
-            title = stringResource(R.string.use_as)
-        ) {
-            scope.launch { context.launchUseAsIntent(it) }
-        }
-    }
-    if (showDeleteButton) {
-        // Trash Component
-        BottomBarColumn(
-            currentMedia = currentMedia,
-            imageVector = Icons.Outlined.DeleteOutline,
-            title = stringResource(id = R.string.trash)
-        ) {
-            result?.let { result ->
-                scope.launch {
-                    handler.trashMedia(result = result, arrayListOf(it))
-                    onDeleteMedia?.invoke(currentIndex)
-                }
-            }
-        }
     }
 }
 

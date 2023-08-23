@@ -25,6 +25,7 @@ data class Media(
     val orientation: Int,
     val favorite: Int,
     val trashed: Int,
+    val size: Long,
     val duration: String? = null,
     val thumbnailMsgId: Long? = null,
 ) : Parcelable {
@@ -73,7 +74,8 @@ data class Media(
                 mimeType = mimeType,
                 favorite = 0,
                 trashed = 0,
-                orientation = 0
+                orientation = 0,
+                size = 0
             )
         }
     }
