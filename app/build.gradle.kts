@@ -109,6 +109,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.constraintlayout)
     "baselineProfile"(project(mapOf("path" to ":baselineprofile")))
 
     // Core

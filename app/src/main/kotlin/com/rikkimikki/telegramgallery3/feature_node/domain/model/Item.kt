@@ -11,8 +11,8 @@ data class Item (
     val tags: MutableList<String>,
     val mimeType: String,
     val orientation: Int,
-    val favorite: Boolean,
-    val trashed: Boolean,
+    var favorite: Boolean,
+    var trashed: Boolean,
     val duration: String? = null,
     val thumbnailMsgId: Long? = null,
 )

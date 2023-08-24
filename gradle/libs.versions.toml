@@ -30,6 +30,7 @@ room = "2.6.0-alpha02"
 accompanist = "0.31.3-beta"
 datastore ="1.1.0-alpha04"
 zoomable = "1.5.0-beta1"
+constraintlayout = "2.1.4"
 
 [libraries]
 # AndroidX
@@ -118,6 +119,7 @@ fuzzywuzzy = { module = "me.xdrop:fuzzywuzzy", version.ref = "fuzzywuzzy" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext-junit" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
+constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

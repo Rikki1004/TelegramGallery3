@@ -40,16 +40,50 @@ class SearchViewModel @Inject constructor(
         queryMedia()
     }
 
-    private suspend fun List<Media>.parseQuery(query: String): List<Media> {
+    /*private suspend fun List<Media>.parseQuery(query: String): List<Media> {
         return withContext(Dispatchers.IO) {
             if (query.isEmpty())
                 return@withContext emptyList()
+            val queryTags = query.split(",").map { it.trim() }
             val matches = FuzzySearch.extractSorted(query, this@parseQuery, { it.toString() }, 60)
             return@withContext matches.map { it.referent }.ifEmpty { emptyList() }
         }
+    }*/
+    private fun List<Media>.parseQuery(query: String): List<Media> {
+        if (query.isBlank()) {
+            return emptyList()
+        }
+
+        val queryTags = query.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        val positiveTags = mutableListOf<String>()
+        val negativeTags = mutableListOf<String>()
+
+        for (tag in queryTags) {
+            if (tag.startsWith("-")) {
+                negativeTags.add(tag.substring(1))
+            } else {
+                positiveTags.add(tag)
+            }
+        }
+
+        return this.filter { media ->
+            val hasAllPositiveTags = positiveTags.all { media.tags.contains(it) }
+            val hasNoNegativeTags = negativeTags.none { media.tags.contains(it) }
+            hasAllPositiveTags && hasNoNegativeTags
+        }
     }
 
+
     fun clearQuery() = queryMedia("")
+    fun completeTags(q: String): List<String>{
+        val allTags = mediaUseCases.getTagsUseCase()
+        if (q == "" || q == "-")
+            return listOf()
+        return if (q.startsWith("-"))
+            allTags.filter { it.startsWith(q.removePrefix("-")) }.map { "-$it" }
+        else
+            allTags.filter { it.startsWith(q) }
+    }
 
     fun queryMedia(query: String = "") {
         viewModelScope.launch {

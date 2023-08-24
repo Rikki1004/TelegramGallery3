@@ -1,6 +1,7 @@
 package com.rikkimikki.telegramgallery3.feature_node.data.repository
 
 import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
@@ -9,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
+import android.os.Parcel
 import android.provider.MediaStore
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
@@ -16,6 +18,7 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.core.net.toUri
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.rikkimikki.telegramgallery3.FakeActivity
 import com.rikkimikki.telegramgallery3.core.Constants
 import com.rikkimikki.telegramgallery3.core.Resource
 import com.rikkimikki.telegramgallery3.core.contentFlowObserver
@@ -53,6 +56,7 @@ import com.rikkimikki.telegramgallery3.feature_node.data.telegram.extensions.Use
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.flows.authorizationStateFlow
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Album
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Index
+import com.rikkimikki.telegramgallery3.feature_node.domain.model.Item
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.PinnedAlbum
 import com.rikkimikki.telegramgallery3.feature_node.domain.repository.MediaRepository
@@ -95,7 +99,6 @@ class MediaRepositoryImpl(
 
     private val authFlow = api.authorizationStateFlow()
         .onEach {
-            println("ddd: "+it.toString())
             checkRequiredParams(it)
         }
         .map {
@@ -133,29 +136,34 @@ class MediaRepositoryImpl(
         }
     }
 
+    private fun itemToMedia(item: Item): Media{
+        var formattedDate = ""
+        if (item.timestamp != 0L) {
+            formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
+        }
+        return Media(
+            id = item.msgId,
+            label = item.label,
+            uri = "".toUri(),
+            path = "",
+            albumID = -99L,
+            albumLabel = "",
+            timestamp = item.timestamp,
+            fullDate = formattedDate,
+            mimeType = item.mimeType,
+            favorite = if (item.favorite) 1 else 0,
+            trashed = if (item.trashed) 1 else 0,
+            size = item.size,
+            orientation = 0,
+            tags = item.tags
+
+        )
+    }
+
     override fun getMedia(): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia {
             (index.photo+index.video).map { item ->
-                var formattedDate = ""
-                if (item.timestamp != 0L) {
-                    formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
-                }
-                Media(
-                    id = item.msgId,
-                    label = item.label,
-                    uri = "".toUri(),
-                    path = "",
-                    albumID = -99L,
-                    albumLabel = "",
-                    timestamp = item.timestamp,
-                    fullDate = formattedDate,
-                    mimeType = item.mimeType,
-                    favorite = 0,
-                    trashed = 0,
-                    size = item.size,
-                    orientation = 0
-
-                )
+                itemToMedia(item)
             }
         }
 
@@ -167,55 +175,25 @@ class MediaRepositoryImpl(
                 BOTH -> index.photo+index.video
             }
             items.map { item ->
-                var formattedDate = ""
-                if (item.timestamp != 0L) {
-                    formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
-                }
-                Media(
-                    id = item.msgId,
-                    label = item.label,
-                    uri = "".toUri(),
-                    path = "",
-                    albumID = -99L,
-                    albumLabel = "",
-                    timestamp = item.timestamp,
-                    fullDate = formattedDate,
-                    mimeType = item.mimeType,
-                    favorite = 0,
-                    trashed = 0,
-                    orientation = 0,
-                    duration = item.duration,
-                    size = item.size,
-                    thumbnailMsgId = item.thumbnailMsgId
-
-                )
+                itemToMedia(item)
             }
         }
 
-    /*override fun getMediaByType(allowedMedia: AllowedMedia): Flow<Resource<List<Media>>> =
-        contentResolver.retrieveMedia {
-            val query = when (allowedMedia) {
-                PHOTOS -> Query.PhotoQuery()
-                VIDEOS -> Query.VideoQuery()
-                BOTH -> Query.MediaQuery()
-            }
-            it.getMedia(mediaQuery = query, mediaOrder = DEFAULT_ORDER)
-        }*/
 
     override fun getFavorites(mediaOrder: MediaOrder): Flow<Resource<List<Media>>> =
-        contentResolver.retrieveMedia { it.getMediaFavorite(mediaOrder = mediaOrder) }
+        contentResolver.retrieveMedia {
+            (index.photo+index.video).filter { it.favorite } .map { item ->
+                itemToMedia(item)
+            }
+        }
 
     override fun getTrashed(mediaOrder: MediaOrder): Flow<Resource<List<Media>>> =
-        contentResolver.retrieveMedia { it.getMediaTrashed(mediaOrder = mediaOrder) }
-
-    /*override fun getAlbums(mediaOrder: MediaOrder): Flow<Resource<List<Album>>> =
-        contentResolver.retrieveAlbums {
-            it.getAlbums(mediaOrder = mediaOrder).toMutableList().apply {
-                replaceAll { album ->
-                    album.copy(isPinned = database.getPinnedDao().albumIsPinned(album.id))
-                }
+        contentResolver.retrieveMedia {
+            (index.photo+index.video).filter { it.trashed } .map { item ->
+                itemToMedia(item)
             }
-        }*/
+        }
+
     override fun getAlbums(mediaOrder: MediaOrder): Flow<Resource<List<Album>>> =
         contentResolver.retrieveAlbums {
             (index.supportedTags).mapIndexed{ tagIndex, tag ->
@@ -277,28 +255,7 @@ class MediaRepositoryImpl(
             items
                 .filter { it.tags.contains(index.supportedTags[albumId.toInt()]) }
                 .map { item ->
-                    var formattedDate = ""
-                    if (item.timestamp != 0L) {
-                        formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
-                    }
-                    Media(
-                        id = item.msgId,
-                        label = item.label,
-                        uri = "".toUri(),
-                        path = "",
-                        albumID = -99L,
-                        albumLabel = "",
-                        timestamp = item.timestamp,
-                        fullDate = formattedDate,
-                        mimeType = item.mimeType,
-                        favorite = 0,
-                        trashed = 0,
-                        orientation = 0,
-                        duration = item.duration,
-                        size = item.size,
-                        thumbnailMsgId = item.thumbnailMsgId
-
-                    )
+                    itemToMedia(item)
                 }
         }
 
@@ -315,28 +272,7 @@ class MediaRepositoryImpl(
             items
                 .filter { it.tags.contains(index.supportedTags[albumId.toInt()]) }
                 .map { item ->
-                    var formattedDate = ""
-                    if (item.timestamp != 0L) {
-                        formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
-                    }
-                    Media(
-                        id = item.msgId,
-                        label = item.label,
-                        uri = "".toUri(),
-                        path = "",
-                        albumID = -99L,
-                        albumLabel = "",
-                        timestamp = item.timestamp,
-                        fullDate = formattedDate,
-                        mimeType = item.mimeType,
-                        favorite = 0,
-                        trashed = 0,
-                        orientation = 0,
-                        duration = item.duration,
-                        size = item.size,
-                        thumbnailMsgId = item.thumbnailMsgId
-
-                    )
+                    itemToMedia(item)
                 }
         }
 
@@ -400,20 +336,26 @@ class MediaRepositoryImpl(
             }
         }
 
+    private fun getFakeSender(): IntentSenderRequest{
+        val intentSender = PendingIntent.getActivity(context, 1, Intent(context,FakeActivity::class.java),
+            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE).intentSender
+        return IntentSenderRequest.Builder(intentSender)
+            .setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION, 0)
+            .build()
+    }
+
     override suspend fun toggleFavorite(
         result: ActivityResultLauncher<IntentSenderRequest>,
         mediaList: List<Media>,
         favorite: Boolean
     ) {
-        val intentSender = MediaStore.createFavoriteRequest(
-            contentResolver,
-            mediaList.map { it.uri },
-            favorite
-        ).intentSender
-        val senderRequest: IntentSenderRequest = IntentSenderRequest.Builder(intentSender)
-            .setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION, 0)
-            .build()
-        result.launch(senderRequest)
+        val idList = mediaList.map { it.id }
+
+        index.video.filter { idList.contains(it.msgId) }.forEach { it.favorite = favorite }
+        index.photo.filter { idList.contains(it.msgId) }.forEach { it.favorite = favorite }
+        uploadIndex()
+
+        result.launch(getFakeSender())
     }
 
     override suspend fun trashMedia(
@@ -421,29 +363,23 @@ class MediaRepositoryImpl(
         mediaList: List<Media>,
         trash: Boolean
     ) {
-        val intentSender = MediaStore.createTrashRequest(
-            contentResolver,
-            mediaList.map { it.uri },
-            trash
-        ).intentSender
-        val senderRequest: IntentSenderRequest = IntentSenderRequest.Builder(intentSender)
-            .setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION, 0)
-            .build()
-        result.launch(senderRequest, ActivityOptionsCompat.makeTaskLaunchBehind())
+        val idList = mediaList.map { it.id }
+        index.video.filter { idList.contains(it.msgId) }.forEach { it.trashed = trash }
+        index.photo.filter { idList.contains(it.msgId) }.forEach { it.trashed = trash }
+        uploadIndex()
+        result.launch(getFakeSender())
     }
 
     override suspend fun deleteMedia(
         result: ActivityResultLauncher<IntentSenderRequest>,
         mediaList: List<Media>
     ) {
-        val intentSender =
-            MediaStore.createDeleteRequest(contentResolver, mediaList.map { it.uri }).intentSender
-        val senderRequest: IntentSenderRequest = IntentSenderRequest.Builder(intentSender)
-            .setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION, 0)
-            .build()
-        result.launch(senderRequest)
+        val idList = mediaList.map { it.id }
+        index.video.removeIf{ idList.contains(it.msgId) }
+        index.photo.removeIf{ idList.contains(it.msgId) }
+        uploadIndex()
+        result.launch(getFakeSender())
     }
-
 
     override fun startTelegram() {
         api.attachClient()
@@ -463,7 +399,6 @@ class MediaRepositoryImpl(
     override suspend fun authSendPassword(password: String) {
         api.checkAuthenticationPassword(password)
     }
-
 
 
     suspend fun newIndex():String{
@@ -504,7 +439,7 @@ class MediaRepositoryImpl(
         tempFile.delete()
     }
     override suspend fun getIndex() : Index{
-        me = api.getMe()//api.getChatPinnedMessage(api.getMe().id.toLong())
+        me = api.getMe()
         findIndexChat()
 
         val objectMapper: Gson = GsonBuilder()
@@ -625,6 +560,8 @@ class MediaRepositoryImpl(
         val fileId = messageIdToFileId(messageId,false)
         return api.downloadFile(fileId,29,0,1,true)
     }
+
+    override fun getTags(): List<String> = index.supportedTags
 
     private lateinit var compositeBitmap:Bitmap
     private var numFrames:Int = -1

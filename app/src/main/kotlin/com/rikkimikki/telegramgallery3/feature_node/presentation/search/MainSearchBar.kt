@@ -1,5 +1,6 @@
 package com.rikkimikki.telegramgallery3.feature_node.presentation.search
 
+import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +52,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -65,6 +68,7 @@ import com.rikkimikki.telegramgallery3.feature_node.presentation.search.SearchBa
 import com.rikkimikki.telegramgallery3.feature_node.presentation.search.SearchBarElevation.Expanded
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.Screen
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainSearchBar(
@@ -75,9 +79,11 @@ fun MainSearchBar(
     isScrolling: MutableState<Boolean>,
     menuItems: @Composable (RowScope.() -> Unit)? = null,
 ) {
-    var historySet by rememberSearchHistory()
+    //var historySet by rememberSearchHistory()
+    var tagsList by remember{ mutableStateOf ( listOf<String>() ) }
     val vm = hiltViewModel<SearchViewModel>()
     var query by rememberSaveable { mutableStateOf("") }
+
     val state by vm.mediaState.collectAsStateWithLifecycle()
     var activeState by rememberSaveable {
         mutableStateOf(false)
@@ -127,10 +133,14 @@ fun MainSearchBar(
                 query = it
                 if (it != vm.lastQuery.value && vm.lastQuery.value.isNotEmpty())
                     vm.clearQuery()
+
+                tagsList = vm.completeTags(query.split(",").last().trim())
+
+
             },
             onSearch = {
-                if (it.isNotEmpty())
-                    historySet = historySet.toMutableSet().apply { add("${System.currentTimeMillis()}/$it") }
+                //if (it.isNotEmpty())
+                //    historySet = historySet.toMutableSet().apply { add("${System.currentTimeMillis()}/$it") }
                 vm.queryMedia(it)
             },
             active = activeState,
@@ -171,9 +181,15 @@ fun MainSearchBar(
                 enter = enterAnimation,
                 exit = exitAnimation
             ) {
-                SearchHistory {
-                    query = it
-                    vm.queryMedia(it)
+                SearchHistory(tagsList) {
+                    query = if (query.contains(",") )
+                        "${query.substringBeforeLast(",")}, $it, "
+                    else
+                        "$it, "
+                    tagsList = listOf()
+
+                    //activeState = true
+                    //vm.queryMedia(it)
                 }
             }
 
@@ -244,9 +260,9 @@ fun MainSearchBar(
 }
 
 @Composable
-private fun SearchHistory(search: (query: String) -> Unit) {
-    var historySet by rememberSearchHistory()
-    val historyItems = remember(historySet) {
+private fun SearchHistory(suggestionSet: List<String>, search: (query: String) -> Unit) {
+    //var historySet by rememberSearchHistory()
+    /*val historyItems = remember(historySet) {
         historySet.toList().mapIndexed { index, item ->
             Pair(
                 item.substringBefore(
@@ -259,19 +275,19 @@ private fun SearchHistory(search: (query: String) -> Unit) {
                 )
             )
         }.sortedByDescending { it.first }
-    }
-    val suggestionSet = listOf(
+    }*/
+    /*val suggestionSet = listOf(
         "0" to "Screenshots",
         "1" to "Camera",
         "2" to "May 2022",
         "3" to "Thursday"
-    )
-    val maxItems = remember(historySet) {
+    )*/
+    /*val maxItems = remember(historySet) {
         if (historyItems.size >= 5) 5 else historyItems.size
-    }
+    }*/
 
     LazyColumn {
-        if (historyItems.isNotEmpty()) {
+        /*if (historyItems.isNotEmpty()) {
             item {
                 Text(
                     text = stringResource(R.string.history_recent_title),
@@ -290,7 +306,7 @@ private fun SearchHistory(search: (query: String) -> Unit) {
                     historySet = historySet.toMutableSet().apply { remove(it) }
                 }
             }
-        }
+        }*/
         item {
             Text(
                 text = stringResource(R.string.history_suggestions_title),
@@ -313,7 +329,7 @@ private fun SearchHistory(search: (query: String) -> Unit) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LazyItemScope.HistoryItem(
-    historyQuery: Pair<String, String>,
+    historyQuery: String,
     search: (String) -> Unit,
     onDelete: ((String) -> Unit)? = null
 ) {
@@ -323,11 +339,11 @@ fun LazyItemScope.HistoryItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = historyQuery.second,
+                    text = historyQuery,
                     modifier = Modifier
                         .weight(1f)
                 )
-                if (onDelete != null) {
+                /*if (onDelete != null) {
                     IconButton(
                         onClick = {
                             val timestamp = if (historyQuery.first.length < 10) "" else "${historyQuery.first}/"
@@ -339,7 +355,7 @@ fun LazyItemScope.HistoryItem(
                             contentDescription = null
                         )
                     }
-                }
+                }*/
             }
         },
         leadingContent = {
@@ -356,7 +372,7 @@ fun LazyItemScope.HistoryItem(
         ),
         modifier = Modifier
             .animateItemPlacement()
-            .clickable { search(historyQuery.second) }
+            .clickable { search(historyQuery) }
     )
 }
 

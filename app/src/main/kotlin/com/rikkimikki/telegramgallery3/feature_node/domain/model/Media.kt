@@ -28,6 +28,7 @@ data class Media(
     val size: Long,
     val duration: String? = null,
     val thumbnailMsgId: Long? = null,
+    val tags: List<String> = listOf()
 ) : Parcelable {
 
     override fun toString(): String {

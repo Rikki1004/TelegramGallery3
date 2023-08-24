@@ -75,6 +75,7 @@ interface MediaRepository {
     fun provideApi(): TelegramFlow
     fun getVideoThumbnail(seconds: Long, totalSeconds: Long): Bitmap
     suspend fun prepareVideoThumbnail(messageId:Long)
+    fun getTags(): List<String>
     fun cleaner()
 
 }

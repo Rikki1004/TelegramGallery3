@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Gallery</string>
+    <string name="app_name">Telegram Gallery</string>
     <string name="nav_albums">Albums</string>
     <string name="searchbar_title"><![CDATA[Search photos & videos]]></string>
     <string name="header_today">Today</string>
@@ -130,7 +130,6 @@
         <item quantity="one">%s item</item>
         <item quantity="other">%s items</item>
     </plurals>
-
 
 
     <string name="template_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</string>
