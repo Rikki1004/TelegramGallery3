@@ -70,6 +70,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.runBlocking
 import org.drinkless.td.libcore.telegram.TdApi
 import java.io.BufferedReader
 import java.io.File
@@ -207,14 +208,45 @@ class MediaRepositoryImpl(
     override fun getTrashed(mediaOrder: MediaOrder): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia { it.getMediaTrashed(mediaOrder = mediaOrder) }
 
-    override fun getAlbums(mediaOrder: MediaOrder): Flow<Resource<List<Album>>> =
+    /*override fun getAlbums(mediaOrder: MediaOrder): Flow<Resource<List<Album>>> =
         contentResolver.retrieveAlbums {
             it.getAlbums(mediaOrder = mediaOrder).toMutableList().apply {
                 replaceAll { album ->
                     album.copy(isPinned = database.getPinnedDao().albumIsPinned(album.id))
                 }
             }
+        }*/
+    override fun getAlbums(mediaOrder: MediaOrder): Flow<Resource<List<Album>>> =
+        contentResolver.retrieveAlbums {
+            (index.supportedTags).mapIndexed{ tagIndex, tag ->
+                val photoCount = index.photo.count { it.tags.contains(tag) }.toLong()
+                val videoCount = index.video.count { it.tags.contains(tag) }.toLong()
+                var timeStamp = 0L
+
+                val includes = if (photoCount>0)
+                    runBlocking(Dispatchers.IO) {
+                        val presenter = index.photo.first{it.tags.contains(tag)}
+                        timeStamp = presenter.timestamp
+                        loadThumbnail(presenter.msgId)
+                    }.local.path
+                else if (videoCount>0)
+                    runBlocking(Dispatchers.IO) {
+                        val presenter = index.video.first{it.tags.contains(tag)}
+                        timeStamp = presenter.timestamp
+                        loadThumbnail(presenter.msgId)
+                    }.local.path
+                else
+                    ""
+                Album(
+                    id = tagIndex.toLong(),
+                    label = tag,
+                    pathToThumbnail = includes,
+                    timestamp = timeStamp,
+                    count = photoCount+videoCount
+                )
+            }
         }
+
 
     override suspend fun insertPinnedAlbum(pinnedAlbum: PinnedAlbum) =
         database.getPinnedDao().insertPinnedAlbum(pinnedAlbum)
@@ -241,20 +273,33 @@ class MediaRepositoryImpl(
 
     override fun getMediaByAlbumId(albumId: Long): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia {
-            val query = Query.MediaQuery().copy(
-                bundle = Bundle().apply {
-                    putString(
-                        ContentResolver.QUERY_ARG_SQL_SELECTION,
-                        MediaStore.MediaColumns.BUCKET_ID + "= ?"
-                    )
-                    putStringArray(
-                        ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                        arrayOf(albumId.toString())
+            val items = index.photo+index.video
+            items
+                .filter { it.tags.contains(index.supportedTags[albumId.toInt()]) }
+                .map { item ->
+                    var formattedDate = ""
+                    if (item.timestamp != 0L) {
+                        formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
+                    }
+                    Media(
+                        id = item.msgId,
+                        label = item.label,
+                        uri = "".toUri(),
+                        path = "",
+                        albumID = -99L,
+                        albumLabel = "",
+                        timestamp = item.timestamp,
+                        fullDate = formattedDate,
+                        mimeType = item.mimeType,
+                        favorite = 0,
+                        trashed = 0,
+                        orientation = 0,
+                        duration = item.duration,
+                        size = item.size,
+                        thumbnailMsgId = item.thumbnailMsgId
+
                     )
                 }
-            )
-            /** return@retrieveMedia */
-            it.getMedia(query)
         }
 
     override fun getMediaByAlbumIdWithType(
@@ -262,25 +307,37 @@ class MediaRepositoryImpl(
         allowedMedia: AllowedMedia
     ): Flow<Resource<List<Media>>>  =
         contentResolver.retrieveMedia {
-            val query = Query.MediaQuery().copy(
-                bundle = Bundle().apply {
-                    val mimeType = when (allowedMedia) {
-                        PHOTOS -> "image%"
-                        VIDEOS -> "video%"
-                        BOTH -> "%/%"
+            val items = when (allowedMedia) {
+                PHOTOS -> index.photo
+                VIDEOS -> index.video
+                BOTH -> index.photo+index.video
+            }
+            items
+                .filter { it.tags.contains(index.supportedTags[albumId.toInt()]) }
+                .map { item ->
+                    var formattedDate = ""
+                    if (item.timestamp != 0L) {
+                        formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
                     }
-                    putString(
-                        ContentResolver.QUERY_ARG_SQL_SELECTION,
-                        MediaStore.MediaColumns.BUCKET_ID + "= ? and " + MediaStore.MediaColumns.MIME_TYPE + " like ?"
-                    )
-                    putStringArray(
-                        ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                        arrayOf(albumId.toString(), mimeType)
+                    Media(
+                        id = item.msgId,
+                        label = item.label,
+                        uri = "".toUri(),
+                        path = "",
+                        albumID = -99L,
+                        albumLabel = "",
+                        timestamp = item.timestamp,
+                        fullDate = formattedDate,
+                        mimeType = item.mimeType,
+                        favorite = 0,
+                        trashed = 0,
+                        orientation = 0,
+                        duration = item.duration,
+                        size = item.size,
+                        thumbnailMsgId = item.thumbnailMsgId
+
                     )
                 }
-            )
-            /** return@retrieveMedia */
-            it.getMedia(query)
         }
 
     override fun getAlbumsWithType(allowedMedia: AllowedMedia): Flow<Resource<List<Album>>> =

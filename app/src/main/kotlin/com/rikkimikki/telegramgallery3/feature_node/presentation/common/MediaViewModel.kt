@@ -45,12 +45,21 @@ open class MediaViewModel @Inject constructor(
     val api = mediaUseCases.provideApiUseCase()
     private val server = LocalServer(8081,api)
     //-
+    init {
+        onServer()
+    }
+
+    override fun onCleared() {
+        offServer()
+        super.onCleared()
+    }
 
     var albumId: Long = -1L
         set(value) {
             getMedia(albumId = value)
             field = value
         }
+
     var target: String? = null
         set(value) {
             getMedia(target = value)
@@ -70,7 +79,11 @@ open class MediaViewModel @Inject constructor(
     }
     fun onServer(){
         if(!server.wasStarted())
-            server.start()
+            try {
+                server.start()
+            } catch (e: Exception){
+                e.printStackTrace()
+            }
         //server.clear()
     }
     fun offServer(){
@@ -79,6 +92,7 @@ open class MediaViewModel @Inject constructor(
             server.stop()
         }
         server.clear()
+        mediaUseCases.cleanOldFilesUseCase()
 
     }
     fun cleaner(){

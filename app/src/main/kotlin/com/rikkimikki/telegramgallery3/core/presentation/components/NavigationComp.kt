@@ -257,13 +257,13 @@ fun NavigationComp(
             }
             val viewModel = hiltViewModel<MediaViewModel>(parentEntry)
 
-            if (route == Screen.TimelineVideoScreen.route){
+            /*if (route == Screen.TimelineVideoScreen.route){
                 viewModel.onServer()
             }
             else{
                 viewModel.offServer()
                 viewModel.cleaner()
-            }
+            }*/
 
 
             MediaViewScreen(
