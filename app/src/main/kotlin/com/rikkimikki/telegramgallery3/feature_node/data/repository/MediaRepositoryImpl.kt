@@ -138,8 +138,8 @@ class MediaRepositoryImpl(
 
     private fun itemToMedia(item: Item): Media{
         var formattedDate = ""
-        if (item.timestamp != 0L) {
-            formattedDate = item.timestamp.getDate(Constants.EXTENDED_DATE_FORMAT)
+        if (item.date != 0L) {
+            formattedDate = item.date.getDate(Constants.EXTENDED_DATE_FORMAT)
         }
         return Media(
             id = item.msgId,
@@ -148,14 +148,16 @@ class MediaRepositoryImpl(
             path = "",
             albumID = -99L,
             albumLabel = "",
-            timestamp = item.timestamp,
+            timestamp = item.date,
             fullDate = formattedDate,
             mimeType = item.mimeType,
             favorite = if (item.favorite) 1 else 0,
             trashed = if (item.trashed) 1 else 0,
             size = item.size,
             orientation = 0,
-            tags = item.tags
+            tags = item.tags,
+            duration = item.duration,
+            thumbnailMsgId = item.thumbnailMsgId
 
         )
     }
@@ -204,13 +206,13 @@ class MediaRepositoryImpl(
                 val includes = if (photoCount>0)
                     runBlocking(Dispatchers.IO) {
                         val presenter = index.photo.first{it.tags.contains(tag)}
-                        timeStamp = presenter.timestamp
+                        timeStamp = presenter.date
                         loadThumbnail(presenter.msgId)
                     }.local.path
                 else if (videoCount>0)
                     runBlocking(Dispatchers.IO) {
                         val presenter = index.video.first{it.tags.contains(tag)}
-                        timeStamp = presenter.timestamp
+                        timeStamp = presenter.date
                         loadThumbnail(presenter.msgId)
                     }.local.path
                 else

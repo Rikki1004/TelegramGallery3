@@ -6,7 +6,7 @@ data class Item (
     val chatId: Long,
     @Transient val mediaId: Long? = null,
     val label: String,
-    val timestamp: Long,
+    val date: Long,
     val size: Long,
     val tags: MutableList<String>,
     val mimeType: String,

@@ -70,9 +70,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-fun convertImageByteArrayToBitmap(imageData: ByteArray): Bitmap {
-    return BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoPlayerController(

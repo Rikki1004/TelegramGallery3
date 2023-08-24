@@ -54,7 +54,7 @@ fun getMonth(date: String): String {
 fun Long.getDate(
     format: CharSequence = Constants.DEFAULT_DATE_FORMAT,
 ): String {
-    val mediaDate = Calendar.getInstance(Locale.US)
+    val mediaDate = Calendar.getInstance(Locale.getDefault())
     mediaDate.timeInMillis = this * 1000L
     return DateFormat.format(format, mediaDate).toString()
 }
@@ -66,9 +66,9 @@ fun Long.getDate(
     stringToday: String,
     stringYesterday: String
 ): String {
-    val currentDate = Calendar.getInstance(Locale.US)
+    val currentDate = Calendar.getInstance(Locale.getDefault())
     currentDate.timeInMillis = System.currentTimeMillis()
-    val mediaDate = Calendar.getInstance(Locale.US)
+    val mediaDate = Calendar.getInstance(Locale.getDefault())
     mediaDate.timeInMillis = this * 1000L
     val different: Long = System.currentTimeMillis() - mediaDate.timeInMillis
     val secondsInMilli: Long = 1000

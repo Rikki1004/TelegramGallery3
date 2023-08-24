@@ -207,6 +207,13 @@ fun Media.retrieveMetadata(context: Context): List<InfoRow> {
             add(
                 InfoRow(
                     icon = Icons.Outlined.Info,
+                    label = context.getString(R.string.tags),
+                    content = tags.joinToString(", ")
+                )
+            )
+            add(
+                InfoRow(
+                    icon = Icons.Outlined.Info,
                     label = context.getString(R.string.path),
                     content = path
                 )
@@ -241,6 +248,14 @@ fun Media.retrieveMetadata(context: Context): List<InfoRow> {
                     icon = Icons.Outlined.VideoFile,
                     label = context.getString(R.string.metadata),
                     content = contentString.toString()
+                )
+            )
+
+            add(
+                InfoRow(
+                    icon = Icons.Outlined.Info,
+                    label = context.getString(R.string.tags),
+                    content = tags.joinToString(", ")
                 )
             )
 
