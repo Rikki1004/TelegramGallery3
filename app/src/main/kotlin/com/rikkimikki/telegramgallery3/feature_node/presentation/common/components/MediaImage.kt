@@ -26,6 +26,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,10 +91,10 @@ fun MediaImage(
             .size(Dimens.Photo())
     ) {
 
-        val mediaUri = remember { mutableStateOf<String?>(null) }
+        var mediaUri by remember { mutableStateOf<String?>(null) }
         LaunchedEffect(Unit) {
             val item = viewModel.thumbLoader(media.id)
-            mediaUri.value = item.local.path
+            mediaUri = item.local.path
             //media.path = item.local.path
             //media.uri = item.local.path.toUri()
         }
@@ -113,7 +114,7 @@ fun MediaImage(
                     color = strokeColor
                 ),
             //model = media.uri,
-            model = mediaUri.value?: R.drawable.malevich,
+            model = mediaUri?: R.drawable.malevich,
             contentDescription = media.label,
             contentScale = ContentScale.Crop,
         ) /*{

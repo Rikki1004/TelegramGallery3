@@ -1,5 +1,6 @@
 package com.rikkimikki.telegramgallery3.feature_node.presentation.search
 
+import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +52,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -58,16 +61,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rikkimikki.telegramgallery3.R
 import com.rikkimikki.telegramgallery3.core.Constants.Animation.enterAnimation
 import com.rikkimikki.telegramgallery3.core.Constants.Animation.exitAnimation
-import com.rikkimikki.telegramgallery3.core.Settings.Search.rememberSearchHistory
 import com.rikkimikki.telegramgallery3.core.presentation.components.LoadingMedia
 import com.rikkimikki.telegramgallery3.feature_node.presentation.common.components.MediaGridView
 import com.rikkimikki.telegramgallery3.feature_node.presentation.search.SearchBarElevation.Collapsed
 import com.rikkimikki.telegramgallery3.feature_node.presentation.search.SearchBarElevation.Expanded
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.Screen
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainSearchBar(
+    isPhoto: Boolean = true,
     bottomPadding: Dp,
     selectionState: MutableState<Boolean>? = null,
     navigate: (String) -> Unit,
@@ -75,9 +79,11 @@ fun MainSearchBar(
     isScrolling: MutableState<Boolean>,
     menuItems: @Composable (RowScope.() -> Unit)? = null,
 ) {
-    var historySet by rememberSearchHistory()
+    //var historySet by rememberSearchHistory()
+    var tagsList by remember{ mutableStateOf ( listOf<String>() ) }
     val vm = hiltViewModel<SearchViewModel>()
     var query by rememberSaveable { mutableStateOf("") }
+
     val state by vm.mediaState.collectAsStateWithLifecycle()
     var activeState by rememberSaveable {
         mutableStateOf(false)
@@ -127,11 +133,13 @@ fun MainSearchBar(
                 query = it
                 if (it != vm.lastQuery.value && vm.lastQuery.value.isNotEmpty())
                     vm.clearQuery()
+
+                tagsList = vm.completeTags(query.split(",").last().trim())
+
+
             },
             onSearch = {
-                if (it.isNotEmpty())
-                    historySet = historySet.toMutableSet().apply { add("${System.currentTimeMillis()}/$it") }
-                vm.queryMedia(it)
+                vm.queryMedia(it,isPhoto)
             },
             active = activeState,
             onActiveChange = { activeState = it },
@@ -171,9 +179,15 @@ fun MainSearchBar(
                 enter = enterAnimation,
                 exit = exitAnimation
             ) {
-                SearchHistory {
-                    query = it
-                    vm.queryMedia(it)
+                SearchHistory(tagsList) {
+                    query = if (query.contains(",") )
+                        "${query.substringBeforeLast(",")}, $it, "
+                    else
+                        "$it, "
+                    tagsList = listOf()
+
+                    //activeState = true
+                    //vm.queryMedia(it)
                 }
             }
 
@@ -215,8 +229,9 @@ fun MainSearchBar(
                             paddingValues = pd,
                             isScrolling = remember { mutableStateOf(false) }
                         ) {
-                            dismissSearchBar()
-                            navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}")
+                            //dismissSearchBar()
+                            //navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}")
+                            navigate(Screen.MediaViewScreen.route + "?isPhoto=${it.mimeType.startsWith("image")}&mediaId=${it.id}")
                         }
                         androidx.compose.animation.AnimatedVisibility(
                             visible = state.isLoading,
@@ -244,53 +259,8 @@ fun MainSearchBar(
 }
 
 @Composable
-private fun SearchHistory(search: (query: String) -> Unit) {
-    var historySet by rememberSearchHistory()
-    val historyItems = remember(historySet) {
-        historySet.toList().mapIndexed { index, item ->
-            Pair(
-                item.substringBefore(
-                    delimiter = "/",
-                    missingDelimiterValue = index.toString()
-                ),
-                item.substringAfter(
-                    delimiter = "/",
-                    missingDelimiterValue = item
-                )
-            )
-        }.sortedByDescending { it.first }
-    }
-    val suggestionSet = listOf(
-        "0" to "Screenshots",
-        "1" to "Camera",
-        "2" to "May 2022",
-        "3" to "Thursday"
-    )
-    val maxItems = remember(historySet) {
-        if (historyItems.size >= 5) 5 else historyItems.size
-    }
-
+private fun SearchHistory(suggestionSet: List<String>, search: (query: String) -> Unit) {
     LazyColumn {
-        if (historyItems.isNotEmpty()) {
-            item {
-                Text(
-                    text = stringResource(R.string.history_recent_title),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .padding(top = 16.dp)
-                )
-            }
-            items(historyItems.subList(0, maxItems)) {
-                HistoryItem(
-                    historyQuery = it,
-                    search = search,
-                ) {
-                    historySet = historySet.toMutableSet().apply { remove(it) }
-                }
-            }
-        }
         item {
             Text(
                 text = stringResource(R.string.history_suggestions_title),
@@ -313,7 +283,7 @@ private fun SearchHistory(search: (query: String) -> Unit) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LazyItemScope.HistoryItem(
-    historyQuery: Pair<String, String>,
+    historyQuery: String,
     search: (String) -> Unit,
     onDelete: ((String) -> Unit)? = null
 ) {
@@ -323,23 +293,10 @@ fun LazyItemScope.HistoryItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = historyQuery.second,
+                    text = historyQuery,
                     modifier = Modifier
                         .weight(1f)
                 )
-                if (onDelete != null) {
-                    IconButton(
-                        onClick = {
-                            val timestamp = if (historyQuery.first.length < 10) "" else "${historyQuery.first}/"
-                            onDelete("$timestamp${historyQuery.second}")
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = null
-                        )
-                    }
-                }
             }
         },
         leadingContent = {
@@ -356,7 +313,7 @@ fun LazyItemScope.HistoryItem(
         ),
         modifier = Modifier
             .animateItemPlacement()
-            .clickable { search(historyQuery.second) }
+            .clickable { search(historyQuery) }
     )
 }
 

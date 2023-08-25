@@ -1,9 +1,11 @@
 package com.rikkimikki.telegramgallery3.feature_node.domain.repository
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import com.rikkimikki.telegramgallery3.core.Resource
+import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramFlow
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Album
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Index
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
@@ -12,12 +14,12 @@ import com.rikkimikki.telegramgallery3.feature_node.domain.util.AuthState
 import com.rikkimikki.telegramgallery3.feature_node.domain.util.MediaOrder
 import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 import org.drinkless.td.libcore.telegram.TdApi
 
 interface MediaRepository {
 
     fun getMedia(): Flow<Resource<List<Media>>>
+    fun getMediaFiltered(q: String): Flow<Resource<List<Media>>>
 
     fun getMediaByType(allowedMedia: AllowedMedia): Flow<Resource<List<Media>>>
 
@@ -71,5 +73,10 @@ interface MediaRepository {
     suspend fun loadThumbnail(messageId: Long): TdApi.File
     suspend fun loadPhoto(messageId: Long): TdApi.File
     suspend fun loadVideo(messageId: Long): TdApi.File
+    fun provideApi(): TelegramFlow
+    fun getVideoThumbnail(seconds: Long, totalSeconds: Long): Bitmap
+    suspend fun prepareVideoThumbnail(messageId:Long)
+    fun getTags(): List<String>
+    fun cleaner()
 
 }

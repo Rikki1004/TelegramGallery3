@@ -1,5 +1,6 @@
 package com.rikkimikki.telegramgallery3.feature_node.presentation.mediaview.components.media
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,7 +17,7 @@ fun MediaPreviewComponent(
     maxImageSize: Int,
     playWhenReady: Boolean,
     onItemClick: () -> Unit,
-    videoController: @Composable (ExoPlayer, MutableState<Long>, Long, Int, () -> Unit) -> Unit,
+    videoController: @Composable (ExoPlayer, MutableState<Long>, Long, Int,Boolean, () -> Unit, (Long,Long)-> Bitmap) -> Unit,
 ) {
     Box(
         modifier = Modifier

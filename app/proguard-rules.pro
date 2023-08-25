@@ -23,3 +23,16 @@
 -dontwarn org.bouncycastle.jsse.**
 -dontwarn org.conscrypt.**
 -dontwarn org.openjsse.**
+
+# Render Script
+-keep class org.drinkless.td.libcore.telegram.** { *; }
+-keepclassmembers class * {
+    native <methods>;
+}
+-keep class com.google.gson.** { *; }
+-keep class com.rikkimikki.telegramgallery3.** { *; }
+
+#-keep class org.drinkless.** { *; }
+#-keep class *.** { *; }
+-keepdirectories  src/main/jniLibs
+

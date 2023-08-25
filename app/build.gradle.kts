@@ -34,6 +34,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        ndk {
+            abiFilters.add("arm64-v8a")
+            abiFilters.add("armeabi-v7a")
+        }
         //archivesName.set("Gallery-${versionName}_$gitHeadVersion")
     }
 
@@ -50,6 +54,7 @@ android {
                 "CONTENT_AUTHORITY",
                 "\"com.rikkimikki.telegramgallery3.debug.media_provider\""
             )
+
         }
         getByName("release") {
             manifestPlaceholders += mapOf(
@@ -57,9 +62,11 @@ android {
             )
             isMinifyEnabled = true
             isShrinkResources = true
+
             setProguardFiles(
                 listOf(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    //getDefaultProguardFile("proguard-android-optimize.txt"),
+                    getDefaultProguardFile("proguard-android.txt"),
                     "proguard-rules.pro"
                 )
             )
@@ -109,6 +116,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.constraintlayout)
     "baselineProfile"(project(mapOf("path" to ":baselineprofile")))
 
     // Core
@@ -154,12 +162,15 @@ dependencies {
     kapt(libs.dagger.hilt.compiler)
     kapt(libs.androidx.hilt.compiler)
 
+    implementation (libs.nanohttpd)
+
     // Room
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
 
     // Kotlin Extensions and Coroutines support for Room
     implementation(libs.room.ktx)
+
 
     // Glide
     implementation(libs.glide)

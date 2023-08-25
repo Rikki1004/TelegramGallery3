@@ -193,7 +193,7 @@ data class InfoRow(
     val onLongClick: (() -> Unit)? = null,
 )
 
-fun Media.retrieveMetadata(context: Context, exifMetadata: ExifMetadata): List<InfoRow> {
+fun Media.retrieveMetadata(context: Context): List<InfoRow> {
     val infoList = ArrayList<InfoRow>()
     if (trashed == 1) {
         infoList.apply {
@@ -202,6 +202,13 @@ fun Media.retrieveMetadata(context: Context, exifMetadata: ExifMetadata): List<I
                     icon = Icons.Outlined.Photo,
                     label = context.getString(R.string.label),
                     content = label
+                )
+            )
+            add(
+                InfoRow(
+                    icon = Icons.Outlined.Info,
+                    label = context.getString(R.string.tags),
+                    content = tags.joinToString(", ")
                 )
             )
             add(
@@ -216,25 +223,13 @@ fun Media.retrieveMetadata(context: Context, exifMetadata: ExifMetadata): List<I
     }
     try {
         infoList.apply {
-            if (!exifMetadata.modelName.isNullOrEmpty()) {
-                val aperture = exifMetadata.apertureValue
-                val focalLength = exifMetadata.focalLength
-                val isoValue = exifMetadata.isoValue
-                val stringBuilder = StringBuilder()
-                if (aperture != 0.0)
-                    stringBuilder.append("f/$aperture")
-                if (focalLength != 0.0)
-                    stringBuilder.append(" • ${focalLength}mm")
-                if (isoValue != 0)
-                    stringBuilder.append(context.getString(R.string.iso) + isoValue)
-                add(
-                    InfoRow(
-                        icon = Icons.Outlined.Camera,
-                        label = "${exifMetadata.manufacturerName} ${exifMetadata.modelName}",
-                        content = stringBuilder.toString()
-                    )
+            /*add(
+                InfoRow(
+                    icon = Icons.Outlined.Camera,
+                    label = this@retrieveMetadata.duration,
+                    content = stringBuilder.toString()
                 )
-            }
+            )*/
             add(
                 InfoRow(
                     icon = Icons.Outlined.Photo,
@@ -242,35 +237,27 @@ fun Media.retrieveMetadata(context: Context, exifMetadata: ExifMetadata): List<I
                     content = label
                 )
             )
-            val formattedFileSize = File(path).formattedFileSize(context)
-            if (exifMetadata.imageWidth != 0 && exifMetadata.imageHeight != 0) {
-                val width = exifMetadata.imageWidth
-                val height = exifMetadata.imageHeight
-                val imageMp = exifMetadata.imageMp
-                val contentString = StringBuilder()
-                contentString.append(formattedFileSize)
-                if (imageMp > "0") contentString.append(" • $imageMp MP")
-                if (width > 0 && height > 0) contentString.append(" • $width x $height")
-                add(
-                    InfoRow(
-                        icon = Icons.Outlined.ImageSearch,
-                        label = context.getString(R.string.metadata),
-                        content = contentString.toString()
-                    )
-                )
-            }
-            if (mimeType.contains("video")) {
-                val contentString = StringBuilder()
-                contentString.append(formattedFileSize)
+            val formattedFileSize = this@retrieveMetadata.size.formattedFileSize(context)
+
+            val contentString = StringBuilder()
+            contentString.append(formattedFileSize)
+            if (mimeType.contains("video"))
                 contentString.append(" • ${duration.formatMinSec()}")
-                add(
-                    InfoRow(
-                        icon = Icons.Outlined.VideoFile,
-                        label = context.getString(R.string.metadata),
-                        content = contentString.toString()
-                    )
+            add(
+                InfoRow(
+                    icon = Icons.Outlined.VideoFile,
+                    label = context.getString(R.string.metadata),
+                    content = contentString.toString()
                 )
-            }
+            )
+
+            add(
+                InfoRow(
+                    icon = Icons.Outlined.Info,
+                    label = context.getString(R.string.tags),
+                    content = tags.joinToString(", ")
+                )
+            )
 
             add(
                 InfoRow(

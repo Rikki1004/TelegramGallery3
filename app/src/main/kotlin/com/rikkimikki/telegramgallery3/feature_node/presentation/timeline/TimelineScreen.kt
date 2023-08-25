@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun TimelineScreen(
+    isPhoto: Boolean = true,
     paddingValues: PaddingValues,
     albumId: Long = -1L,
     albumName: String = stringResource(R.string.app_name),
@@ -43,6 +44,7 @@ fun TimelineScreen(
             { RequestMediaManager() }
         } else null
     MediaScreen(
+        isPhoto = isPhoto,
         paddingValues = paddingValues,
         albumId = albumId,
         target = null,
@@ -80,3 +82,4 @@ fun TimelineScreen(
         }
     }
 }
+

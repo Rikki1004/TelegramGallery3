@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PhotoAlbum
+import androidx.compose.material.icons.outlined.VideoCall
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -41,14 +42,20 @@ import com.rikkimikki.telegramgallery3.feature_node.presentation.util.Screen
 
 @Composable
 fun rememberNavigationItems(): List<NavigationItem> {
-    val timelineTitle = stringResource(R.string.nav_timeline)
+    val timelineTitlePhoto = stringResource(R.string.nav_timeline)
+    val timelineTitleVideo = stringResource(R.string.nav_timeline2)
     val albumsTitle = stringResource(R.string.nav_albums)
     return remember {
         listOf(
             NavigationItem(
-                name = timelineTitle,
-                route = Screen.TimelineScreen.route,
+                name = timelineTitlePhoto,
+                route = Screen.TimelinePhotoScreen.route,
                 icon = Icons.Outlined.Photo,
+            ),
+            NavigationItem(
+                name = timelineTitleVideo,
+                route = Screen.TimelineVideoScreen.route,
+                icon = Icons.Outlined.VideoCall,
             ),
             NavigationItem(
                 name = albumsTitle,

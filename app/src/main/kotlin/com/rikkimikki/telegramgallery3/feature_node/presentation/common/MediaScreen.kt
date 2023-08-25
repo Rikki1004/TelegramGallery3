@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.StateFlow
 )
 @Composable
 fun MediaScreen(
+    isPhoto: Boolean = true,
     paddingValues: PaddingValues,
     albumId: Long = -1L,
     target: String? = null,
@@ -156,6 +157,7 @@ fun MediaScreen(
                         )
                     } else {
                         MainSearchBar(
+                            isPhoto = isPhoto,
                             bottomPadding = paddingValues.calculateBottomPadding(),
                             navigate = navigate,
                             toggleNavbar = toggleNavbar,
@@ -203,7 +205,7 @@ fun MediaScreen(
                     val targetRoute = "target=$target"
                     val param =
                         if (target != null) targetRoute else albumRoute
-                    navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}&$param")
+                    navigate(Screen.MediaViewScreen.route + "?isPhoto=${isPhoto}&mediaId=${it.id}&$param")
                 }
                 /** Error State Handling Block **/
                 if (state.error.isNotEmpty())

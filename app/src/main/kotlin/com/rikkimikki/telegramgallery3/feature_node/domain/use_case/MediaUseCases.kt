@@ -32,4 +32,10 @@ data class MediaUseCases(
     val loadThumbnailUseCase = LoadThumbnailUseCase(repository)
     val loadPhotoUseCase = LoadPhotoUseCase(repository)
     val loadVideoUseCase = LoadVideoUseCase(repository)
+    val provideApiUseCase = ProvideApiUseCase(repository)
+    val cleanOldFilesUseCase = CleanOldFilesUseCase(repository)
+    val loadVideoThumbnailUseCase = LoadVideoThumbnailUseCase(repository)
+    val prepareVideoThumbnailUseCase = PrepareVideoThumbnailUseCase(repository)
+    val getMediaFilteredUseCase = GetMediaFilteredUseCase(repository)
+    val getTagsUseCase = GetTagsUseCase(repository)
 }
