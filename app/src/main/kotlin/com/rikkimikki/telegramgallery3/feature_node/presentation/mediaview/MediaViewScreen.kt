@@ -170,7 +170,7 @@ fun MediaViewScreen(
             paddingValues = paddingValues,
             onGoBack = navigateUp
         )
-        if (target == TARGET_TRASH) {
+        /*if (target == TARGET_TRASH) {
             TrashedViewBottomBar(
                 handler = handler,
                 showUI = showUI.value,
@@ -181,7 +181,8 @@ fun MediaViewScreen(
             ) {
                 lastIndex.value = it
             }
-        } else {
+        } else {*/
+        if (target != TARGET_TRASH) {
             MediaViewBottomBar(
                 showDeleteButton = !isStandalone,
                 bottomSheetState = bottomSheetState,

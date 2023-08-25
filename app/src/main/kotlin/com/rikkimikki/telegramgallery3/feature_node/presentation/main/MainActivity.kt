@@ -60,8 +60,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        println(filesDir.absolutePath)
-        //enforceSecureFlag()
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             GalleryTheme {
@@ -148,18 +146,6 @@ class MainActivity : ComponentActivity() {
                         Text(text = "Init")
                         viewModel.performAuthResult()
                     }
-                }
-            }
-        }
-    }
-
-    private fun enforceSecureFlag() {
-        lifecycleScope.launch {
-            getSecureMode(this@MainActivity).collectLatest { enabled ->
-                if (enabled) {
-                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                } else {
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 }
             }
         }

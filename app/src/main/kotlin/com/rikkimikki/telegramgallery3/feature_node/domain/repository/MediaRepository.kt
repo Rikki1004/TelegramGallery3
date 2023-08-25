@@ -19,6 +19,7 @@ import org.drinkless.td.libcore.telegram.TdApi
 interface MediaRepository {
 
     fun getMedia(): Flow<Resource<List<Media>>>
+    fun getMediaFiltered(q: String): Flow<Resource<List<Media>>>
 
     fun getMediaByType(allowedMedia: AllowedMedia): Flow<Resource<List<Media>>>
 

@@ -124,7 +124,7 @@ fun VideoPlayerController(
                         contentDescription = "preview",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(160.dp, 90.dp)
+                            .size(120.dp, 70.dp)
                     )
                 }
             }

@@ -123,6 +123,8 @@ fun NavigationComp(
                 isScrolling = isScrolling,
             )
         }
+
+
         composable(
             route = Screen.TrashedScreen.route,
             enterTransition = { navigateInAnimation },
@@ -253,7 +255,12 @@ fun NavigationComp(
             val entryName =
                 if (albumId == -1L) route else Screen.AlbumViewScreen.route
             val parentEntry = remember(backStackEntry) {
-                navController.getBackStackEntry(entryName)
+                try {
+                    navController.getBackStackEntry(entryName)
+                } catch (e: Exception){
+                    navController.getBackStackEntry(Screen.TimelinePhotoScreen.route)
+                }
+
             }
             val viewModel = hiltViewModel<MediaViewModel>(parentEntry)
 

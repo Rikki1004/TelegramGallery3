@@ -153,13 +153,13 @@ fun SelectionSheet(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 // Share Component
-                SelectionBarColumn(
+                /*SelectionBarColumn(
                     selectedMedia = selectedMedia,
                     imageVector = Icons.Outlined.Share,
                     title = stringResource(R.string.share)
                 ) {
                     context.shareMedia(it)
-                }
+                }*/
                 val favoriteTitle =
                     if (target == TARGET_FAVORITES) stringResource(id = R.string.remove_selected)
                     else stringResource(id = R.string.favorites)

@@ -5,11 +5,11 @@
     <string name="header_today">Сегодня</string>
     <string name="header_yesterday">Вчера</string>
     <string name="share_media">Поделиться</string>
-    <string name="request_permissions">Запросить разрешения</string>
+    <string name="request_permissions">Запрос разрешений</string>
     <string name="filter">Фильтр</string>
     <string name="filter_recent">С недавних</string>
     <string name="filter_nameAZ">Имя (А-Я)</string>
-    <string name="filter_nameZA">Name (Я-А)</string>
+    <string name="filter_nameZA">Имя (Я-А)</string>
     <string name="filter_old">Со старых</string>
     <string name="selected_s">Выбрано %s</string>
     <string name="trash">Помойка</string>
@@ -24,7 +24,7 @@
     <string name="error_cd">Обнаружена ошибка</string>
     <string name="copy_error">Ошибка копирования</string>
     <string name="trash_restore">Восстановить</string>
-    <string name="trash_empty">Пусто</string>
+    <string name="trash_empty">Очистить корзину</string>
     <string name="trash_delete">Удалить</string>
     <string name="share">Поделиться</string>
     <string name="info">Инфо</string>
@@ -97,7 +97,7 @@
     <string name="settings_dark_mode_title">Использовать темный режим</string>.
     <string name="selection_dialog_close_cd">Закрыть диалог выбора</string>
     <string name="edit">Редактировать</string>
-    <string name="trash_deletion_warning">Удаленные вами фотографии и видео будут удалены через 30 дней.</string>
+    <string name="trash_deletion_warning">Фотографии и видео будут полнотью удалены через 30 дней.</string>
     <string name="open_with">Открыть с помощью</string>
     <string name="select">Выбрать</string>
     <string name="photos_and_videos">Фотографии и видео</string>

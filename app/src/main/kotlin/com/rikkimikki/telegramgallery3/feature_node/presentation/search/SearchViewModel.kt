@@ -9,6 +9,7 @@ import com.rikkimikki.telegramgallery3.core.Resource
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.Media
 import com.rikkimikki.telegramgallery3.feature_node.domain.model.MediaItem
 import com.rikkimikki.telegramgallery3.feature_node.domain.use_case.MediaUseCases
+import com.rikkimikki.telegramgallery3.feature_node.presentation.picker.AllowedMedia
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.getDate
 import com.rikkimikki.telegramgallery3.feature_node.presentation.util.getMonth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -85,10 +86,54 @@ class SearchViewModel @Inject constructor(
             allTags.filter { it.startsWith(q) }
     }
 
-    fun queryMedia(query: String = "") {
+    /*fun queryMedia(query: String = "") {
         viewModelScope.launch {
             lastQuery.value = query
-            mediaUseCases.getMediaUseCase().flowOn(Dispatchers.IO).collectLatest { result ->
+            mediaUseCases.getMediaFilteredUseCase(query).flowOn(Dispatchers.IO).collectLatest { result ->
+                val mappedData = ArrayList<MediaItem>()
+                val monthHeaderList = ArrayList<String>()
+                val data = result.data ?: emptyList()
+                if (data == mediaState.value.media) return@collectLatest
+                val error = if (result is Resource.Error) result.message
+                    ?: "An error occurred" else ""
+                if (data.isEmpty()) {
+                    return@collectLatest _mediaState.emit(MediaState())
+                }
+                _mediaState.value = MediaState(isLoading = true)
+                val parsedData = data//.parseQuery(query)
+                parsedData.groupBy {
+                    it.timestamp.getDate(
+                        stringToday = "Today"
+                        ,
+                        stringYesterday = "Yesterday"
+                    )
+                }.forEach { (date, data) ->
+                    val month = getMonth(date)
+                    if (month.isNotEmpty() && !monthHeaderList.contains(month)) {
+                        monthHeaderList.add(month)
+                    }
+                    mappedData.add(MediaItem.Header("header_$date", date, data))
+                    mappedData.addAll(data.map {
+                        MediaItem.MediaViewItem.Loaded(
+                            "media_${it.id}_${it.label}",
+                            it
+                        )
+                    })
+                }
+                _mediaState.value =
+                    MediaState(
+                        error = error,
+                        media = parsedData,
+                        mappedMedia = mappedData
+                    )
+            }
+        }
+    }*/
+
+    fun queryMedia(query: String = "", isPhoto:Boolean = true) {
+        viewModelScope.launch {
+            lastQuery.value = query
+            mediaUseCases.getMediaByTypeUseCase(if (isPhoto) AllowedMedia.PHOTOS else AllowedMedia.VIDEOS).flowOn(Dispatchers.IO).collectLatest { result ->
                 val mappedData = ArrayList<MediaItem>()
                 val monthHeaderList = ArrayList<String>()
                 val data = result.data ?: emptyList()
@@ -102,11 +147,8 @@ class SearchViewModel @Inject constructor(
                 val parsedData = data.parseQuery(query)
                 parsedData.groupBy {
                     it.timestamp.getDate(
-                        stringToday = "Today"
-                        /** Localized in composition */
-                        ,
+                        stringToday = "Today",
                         stringYesterday = "Yesterday"
-                        /** Localized in composition */
                     )
                 }.forEach { (date, data) ->
                     val month = getMonth(date)

@@ -61,7 +61,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rikkimikki.telegramgallery3.R
 import com.rikkimikki.telegramgallery3.core.Constants.Animation.enterAnimation
 import com.rikkimikki.telegramgallery3.core.Constants.Animation.exitAnimation
-import com.rikkimikki.telegramgallery3.core.Settings.Search.rememberSearchHistory
 import com.rikkimikki.telegramgallery3.core.presentation.components.LoadingMedia
 import com.rikkimikki.telegramgallery3.feature_node.presentation.common.components.MediaGridView
 import com.rikkimikki.telegramgallery3.feature_node.presentation.search.SearchBarElevation.Collapsed
@@ -72,6 +71,7 @@ import com.rikkimikki.telegramgallery3.feature_node.presentation.util.Screen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainSearchBar(
+    isPhoto: Boolean = true,
     bottomPadding: Dp,
     selectionState: MutableState<Boolean>? = null,
     navigate: (String) -> Unit,
@@ -139,9 +139,7 @@ fun MainSearchBar(
 
             },
             onSearch = {
-                //if (it.isNotEmpty())
-                //    historySet = historySet.toMutableSet().apply { add("${System.currentTimeMillis()}/$it") }
-                vm.queryMedia(it)
+                vm.queryMedia(it,isPhoto)
             },
             active = activeState,
             onActiveChange = { activeState = it },
@@ -231,8 +229,9 @@ fun MainSearchBar(
                             paddingValues = pd,
                             isScrolling = remember { mutableStateOf(false) }
                         ) {
-                            dismissSearchBar()
-                            navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}")
+                            //dismissSearchBar()
+                            //navigate(Screen.MediaViewScreen.route + "?mediaId=${it.id}")
+                            navigate(Screen.MediaViewScreen.route + "?isPhoto=${it.mimeType.startsWith("image")}&mediaId=${it.id}")
                         }
                         androidx.compose.animation.AnimatedVisibility(
                             visible = state.isLoading,
@@ -261,52 +260,7 @@ fun MainSearchBar(
 
 @Composable
 private fun SearchHistory(suggestionSet: List<String>, search: (query: String) -> Unit) {
-    //var historySet by rememberSearchHistory()
-    /*val historyItems = remember(historySet) {
-        historySet.toList().mapIndexed { index, item ->
-            Pair(
-                item.substringBefore(
-                    delimiter = "/",
-                    missingDelimiterValue = index.toString()
-                ),
-                item.substringAfter(
-                    delimiter = "/",
-                    missingDelimiterValue = item
-                )
-            )
-        }.sortedByDescending { it.first }
-    }*/
-    /*val suggestionSet = listOf(
-        "0" to "Screenshots",
-        "1" to "Camera",
-        "2" to "May 2022",
-        "3" to "Thursday"
-    )*/
-    /*val maxItems = remember(historySet) {
-        if (historyItems.size >= 5) 5 else historyItems.size
-    }*/
-
     LazyColumn {
-        /*if (historyItems.isNotEmpty()) {
-            item {
-                Text(
-                    text = stringResource(R.string.history_recent_title),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .padding(top = 16.dp)
-                )
-            }
-            items(historyItems.subList(0, maxItems)) {
-                HistoryItem(
-                    historyQuery = it,
-                    search = search,
-                ) {
-                    historySet = historySet.toMutableSet().apply { remove(it) }
-                }
-            }
-        }*/
         item {
             Text(
                 text = stringResource(R.string.history_suggestions_title),
@@ -343,19 +297,6 @@ fun LazyItemScope.HistoryItem(
                     modifier = Modifier
                         .weight(1f)
                 )
-                /*if (onDelete != null) {
-                    IconButton(
-                        onClick = {
-                            val timestamp = if (historyQuery.first.length < 10) "" else "${historyQuery.first}/"
-                            onDelete("$timestamp${historyQuery.second}")
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = null
-                        )
-                    }
-                }*/
             }
         },
         leadingContent = {

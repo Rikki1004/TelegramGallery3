@@ -34,6 +34,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        ndk {
+            abiFilters.add("arm64-v8a")
+            abiFilters.add("armeabi-v7a")
+        }
         //archivesName.set("Gallery-${versionName}_$gitHeadVersion")
     }
 
@@ -50,6 +54,7 @@ android {
                 "CONTENT_AUTHORITY",
                 "\"com.rikkimikki.telegramgallery3.debug.media_provider\""
             )
+
         }
         getByName("release") {
             manifestPlaceholders += mapOf(
@@ -57,9 +62,11 @@ android {
             )
             isMinifyEnabled = true
             isShrinkResources = true
+
             setProguardFiles(
                 listOf(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    //getDefaultProguardFile("proguard-android-optimize.txt"),
+                    getDefaultProguardFile("proguard-android.txt"),
                     "proguard-rules.pro"
                 )
             )

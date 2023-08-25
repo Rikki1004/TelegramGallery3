@@ -77,7 +77,7 @@ fun AlbumsScreen(
     }
 
     Scaffold(
-        topBar = {
+        /*topBar = {
             MainSearchBar(
                 bottomPadding = paddingValues.calculateBottomPadding(),
                 navigate = navigate,
@@ -104,7 +104,7 @@ fun AlbumsScreen(
                     )
                 }
             }
-        }
+        }*/
     ) {
         LazyVerticalGrid(
             state = gridState,
@@ -124,7 +124,7 @@ fun AlbumsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(

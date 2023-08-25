@@ -7,14 +7,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
-import android.os.Parcel
 import android.provider.MediaStore
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
-import androidx.core.app.ActivityOptionsCompat
 import androidx.core.net.toUri
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -28,9 +25,7 @@ import com.rikkimikki.telegramgallery3.feature_node.data.data_types.findMedia
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getAlbums
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMedia
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaByUri
-import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaFavorite
 import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaListByUris
-import com.rikkimikki.telegramgallery3.feature_node.data.data_types.getMediaTrashed
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.TelegramCredentials
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramException
 import com.rikkimikki.telegramgallery3.feature_node.data.telegram.core.TelegramFlow
@@ -90,12 +85,17 @@ class MediaRepositoryImpl(
     private val telegramCredentials : TelegramCredentials
 ) : MediaRepository, UserKtx, ChatKtx {
 
+    private val msgToMediaIdList = mutableMapOf<Long,Pair<Int,Int>>() //{msgId: mediaId to thumbId}
+
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
     override val api: TelegramFlow = TelegramFlow()
     lateinit var index : Index
     private lateinit var indexChat:TdApi.Chat
     lateinit var indexMsg: TdApi.Message
     lateinit var me : TdApi.User
+
+    private lateinit var compositeBitmap:Bitmap
+    private var numFrames:Int = -1
 
     private val authFlow = api.authorizationStateFlow()
         .onEach {
@@ -165,6 +165,35 @@ class MediaRepositoryImpl(
     override fun getMedia(): Flow<Resource<List<Media>>> =
         contentResolver.retrieveMedia {
             (index.photo+index.video).map { item ->
+                itemToMedia(item)
+            }
+        }
+
+    override fun getMediaFiltered(q:String): Flow<Resource<List<Media>>> =
+        contentResolver.retrieveMedia {
+
+            if (q.isBlank()) {
+                return@retrieveMedia emptyList()
+            }
+
+            val queryTags = q.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            val positiveTags = mutableListOf<String>()
+            val negativeTags = mutableListOf<String>()
+
+            for (tag in queryTags) {
+                if (tag.startsWith("-")) {
+                    negativeTags.add(tag.substring(1))
+                } else {
+                    positiveTags.add(tag)
+                }
+            }
+
+
+            (index.photo+index.video).filter { item ->
+                val hasAllPositiveTags = positiveTags.all { item.tags.contains(it) }
+                val hasNoNegativeTags = negativeTags.none { item.tags.contains(it) }
+                hasAllPositiveTags && hasNoNegativeTags
+            }.map { item ->
                 itemToMedia(item)
             }
         }
@@ -503,78 +532,77 @@ class MediaRepositoryImpl(
         return
     }
 
-    private suspend fun messageIdToFileId(messageId: Long, getThumb: Boolean = false):Int{
-        val messages = api.getChatHistory(me.id, (messageId*1024*1024),-1,1,false).messages
-        val message = if (messages.isEmpty()) TdApi.Message() else messages[0]
-        println(messageId)
-        return when(message.content.constructor) {
-            TdApi.MessageDocument.CONSTRUCTOR -> {
-                val doc = message.content as TdApi.MessageDocument
-                if (getThumb){
-                    doc.document.thumbnail!!.file.id //doc.document.thumbnail?.file.id :?doc.document.document.id
-                } else {
-                    doc.document.document.id
+
+    private suspend fun messageIdToFileId(messageId: Long):Pair<Int,Int>{
+        return msgToMediaIdList.getOrPut(messageId){
+            val messages = api.getChatHistory(me.id, (messageId*1024*1024),-1,1,false).messages
+            val message = if (messages.isEmpty()) TdApi.Message() else messages[0]
+            println(messageId)
+            return when(message.content.constructor) {
+                TdApi.MessageDocument.CONSTRUCTOR -> {
+                    val doc = message.content as TdApi.MessageDocument
+                    doc.document.document.id to (doc.document.thumbnail?.file?.id ?: 0)
                 }
-                //doc.document.document.id
-            }
-            TdApi.MessageVideo.CONSTRUCTOR -> {
-                val video = message.content as TdApi.MessageVideo
-                if (getThumb){
-                    video.video.thumbnail!!.file.id
-                } else {
-                    video.video.video.id
+                TdApi.MessageVideo.CONSTRUCTOR -> {
+                    val video = message.content as TdApi.MessageVideo
+                    video.video.video.id to (video.video.thumbnail?.file?.id ?: 0)
                 }
-            }
-            TdApi.MessageAudio.CONSTRUCTOR -> {
-                val audio = message.content as TdApi.MessageAudio
-                audio.audio.audio.id
-            }
-            TdApi.MessagePhoto.CONSTRUCTOR -> {
-                val photo = message.content as TdApi.MessagePhoto
-                if (getThumb){
-                    photo.photo.sizes[0].photo.id
-                } else {
-                    photo.photo.sizes[photo.photo.sizes.size-1].photo.id
+                TdApi.MessageAudio.CONSTRUCTOR -> {
+                    val audio = message.content as TdApi.MessageAudio
+                    audio.audio.audio.id to 0
                 }
-            }
-            TdApi.MessageAnimation.CONSTRUCTOR -> {
-                val anime = message.content as TdApi.MessageAnimation
-                anime.animation.animation.id
-            }
-            else -> {
-                print(message)
-                throw Exception("-a-")
+                TdApi.MessagePhoto.CONSTRUCTOR -> {
+                    val photo = message.content as TdApi.MessagePhoto
+                    photo.photo.sizes[photo.photo.sizes.size-1].photo.id to photo.photo.sizes[0].photo.id
+                }
+                TdApi.MessageAnimation.CONSTRUCTOR -> {
+                    val anime = message.content as TdApi.MessageAnimation
+                    anime.animation.animation.id to 0
+                }
+                else -> {
+                    print(message)
+                    throw Exception("-a-")
+                }
             }
         }
+
     }
 
     override suspend fun loadThumbnail(messageId:Long): TdApi.File {
-        val fileId = messageIdToFileId(messageId,true)
-        return api.downloadFile(fileId,31,0,0,true)
+        val fileId = messageIdToFileId(messageId)
+        return api.getFile(fileId.second).let {
+            if (it.local.isDownloadingCompleted )
+                it
+            else
+                api.downloadFile(it.id,31,0,0,true)
+        }
     }
 
     override suspend fun loadPhoto(messageId:Long): TdApi.File {
-        val fileId = messageIdToFileId(messageId,false)
-        return api.downloadFile(fileId,30,0,0,true)
+        val fileId = messageIdToFileId(messageId)
+        return api.getFile(fileId.first).let {
+            if (it.local.isDownloadingCompleted )
+                it
+            else
+                api.downloadFile(it.id,30,0,0,true)
+        }
     }
 
     override suspend fun loadVideo(messageId:Long): TdApi.File {
-        val fileId = messageIdToFileId(messageId,false)
+        val fileId = messageIdToFileId(messageId).first
         return api.downloadFile(fileId,29,0,1,true)
     }
 
     override fun getTags(): List<String> = index.supportedTags
 
-    private lateinit var compositeBitmap:Bitmap
-    private var numFrames:Int = -1
     override suspend fun prepareVideoThumbnail(messageId:Long) {
-        val fileId = messageIdToFileId(messageId,false)
-        val file = api.downloadFile(fileId,32,0,0,true)
+        val fileId = messageIdToFileId(messageId).first
+        val file = api.downloadFile(fileId, 32, 0, 0, true)
 
         val inputStream: InputStream = FileInputStream(file.local.path)
         compositeBitmap = BitmapFactory.decodeStream(inputStream)
 
-        numFrames = compositeBitmap.width / PREWIEW_FRAME_WIDTH
+        numFrames = compositeBitmap.width / PREVIEW_FRAME_WIDTH
     }
 
 
@@ -598,16 +626,16 @@ class MediaRepositoryImpl(
 
         return Bitmap.createBitmap(
             compositeBitmap,
-            frameIndex * PREWIEW_FRAME_WIDTH,
+            frameIndex * PREVIEW_FRAME_WIDTH,
             0,
-            PREWIEW_FRAME_WIDTH,
-            PREWIEW_FRAME_HEIGHT
+            PREVIEW_FRAME_WIDTH,
+            PREVIEW_FRAME_HEIGHT
         )
     }
 
     companion object {
-        private val PREWIEW_FRAME_WIDTH = 160
-        private val PREWIEW_FRAME_HEIGHT = 90
+        private const val PREVIEW_FRAME_WIDTH = 120
+        private const val PREVIEW_FRAME_HEIGHT = 70
         private val DEFAULT_ORDER = MediaOrder.Date(OrderType.Descending)
         private val URIs = arrayOf(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,

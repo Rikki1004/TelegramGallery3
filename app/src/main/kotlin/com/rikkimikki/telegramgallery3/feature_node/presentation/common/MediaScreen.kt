@@ -157,6 +157,7 @@ fun MediaScreen(
                         )
                     } else {
                         MainSearchBar(
+                            isPhoto = isPhoto,
                             bottomPadding = paddingValues.calculateBottomPadding(),
                             navigate = navigate,
                             toggleNavbar = toggleNavbar,

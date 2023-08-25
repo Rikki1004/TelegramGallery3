@@ -77,6 +77,7 @@ open class MediaViewModel @Inject constructor(
     fun launchInVideoScreen() {
         getMediaWithType(-1, AllowedMedia.VIDEOS)
     }
+
     fun onServer(){
         if(!server.wasStarted())
             try {
