@@ -1,13 +1,6 @@
-# Gallery
-## An Android Gallery app built with Jetpack Compose
-![Downloads](https://img.shields.io/github/downloads/IacobIonut01/Gallery/total?color=%23247EE0&label=Downloads)
-[![CI](https://github.com/IacobIonut01/Gallery/actions/workflows/androidCompat.yml/badge.svg?branch=v1)](https://github.com/IacobIonut01/Gallery/actions/workflows/androidCompat.yml)
-![License](https://img.shields.io/github/license/IacobIonut01/Gallery?color=%23247EE0)
-[![Crowdin](https://badges.crowdin.net/gallery-compose/localized.svg)](https://crowdin.com/project/gallery-compose)
-[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/com.rikkimikki.telegramgallery3)](https://apt.izzysoft.de/packages/com.rikkimikki.telegramgallery3/)
-![GitHub Repo stars](https://img.shields.io/github/stars/IacobIonut01/Gallery?color=%23247EE0)
+# TelegramGallery3
+## An Android Online gallery app built with Jetpack Compose
 
-![](./screenshots/preview.png)
-![](./screenshots/items/support_banner.png)
-[![PayPal](./screenshots/items/support_paypal.png)](https://www.paypal.me/iacobionut01)
-[![Revolut](./screenshots/items/support_revolut.png)](https://revolut.me/somaldoaca)
+Everyone knows that an infinite number of files can be stored in favorites, so why not make a gallery out of it? the files will be stored remotely on telegram servers and will not take up space on the phone, in addition, a tag system is implemented that makes it easy to navigate through your files. Files are uploaded via the [Python application](https://github.com/Rikki1004/GalleryDownloader)
+***
+[This application](https://github.com/IacobIonut01/Gallery) is taken as a basis and remade for itself, I express my gratitude to its creator
